@@ -59,3 +59,9 @@
 - [ ] Stem flagging auto-hide after 3+ reports
 - [ ] Email/push notifications for match alerts
 - [ ] Mobile-responsive polish pass
+
+## Phase 9 — NFT.Storage Integration
+- [x] Update StemUpload.tsx to use Pinata IPFS API endpoint
+- [x] Update nftMinting.ts to use Pinata for metadata upload
+- [x] Write vitest to validate Pinata API key (32/32 tests passing)
+- [x] Final checkpoint and delivery

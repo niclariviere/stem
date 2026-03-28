@@ -75,26 +75,33 @@ export function buildNFTMetadata(params: {
 export async function uploadMetadataToIPFS(metadata: StemNFTMetadata): Promise<string> {
   const json = JSON.stringify(metadata, null, 2);
   const blob = new Blob([json], { type: "application/json" });
+  const token = import.meta.env.stemstorage ?? import.meta.env.NFTSTORAGE_API_KEY ?? import.meta.env.VITE_WEB3_STORAGE_TOKEN ?? "";
 
-  try {
-    const formData = new FormData();
-    formData.append("file", blob, "metadata.json");
-    const resp = await fetch("https://up.web3.storage/upload", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_WEB3_STORAGE_TOKEN ?? ""}`,
-      },
-      body: formData,
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      return `https://${data.cid}.ipfs.w3s.link`;
+  if (token && token.startsWith("eyJ")) {
+    try {
+      // Pinata — pin JSON metadata to IPFS
+      const resp = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pinataContent: metadata,
+          pinataMetadata: { name: `stem-nft-${metadata.stem_cid?.slice(0, 12) ?? "meta"}.json` },
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const cid = data.IpfsHash ?? "";
+        if (cid) return `https://gateway.pinata.cloud/ipfs/${cid}`;
+      }
+    } catch {
+      // Fall through to base64 fallback
     }
-  } catch {
-    // Fallback: data URI
   }
 
-  // Fallback: base64 data URI (works without API key)
+  // Fallback: base64 data URI (works without API key, still valid tokenURI)
   const b64 = btoa(unescape(encodeURIComponent(json)));
   return `data:application/json;base64,${b64}`;
 }

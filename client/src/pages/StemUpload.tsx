@@ -96,27 +96,45 @@ export default function StemUpload() {
       let cid = "";
       let ipfsUrl = "";
 
-      try {
-        // Try web3.storage upload endpoint
-        const resp = await fetch("https://up.web3.storage/upload", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_WEB3_STORAGE_TOKEN ?? ""}`,
-          },
-          body: formData,
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          cid = data.cid ?? "";
-          ipfsUrl = `https://${cid}.ipfs.w3s.link`;
+      // Use Pinata JWT (stemstorage secret) or NFTSTORAGE_API_KEY fallback
+      const token = import.meta.env.stemstorage ?? import.meta.env.NFTSTORAGE_API_KEY ?? import.meta.env.VITE_WEB3_STORAGE_TOKEN ?? "";
+
+      if (token && token.startsWith("eyJ")) {
+        try {
+          // Pinata API — free IPFS pinning with JWT auth
+          const pinataForm = new FormData();
+          pinataForm.append("file", file, file.name);
+          pinataForm.append("pinataMetadata", JSON.stringify({ name: file.name }));
+
+          const resp = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: pinataForm,
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            cid = data.IpfsHash ?? "";
+            ipfsUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+            toast.success("Uploaded to IPFS via Pinata!");
+          } else {
+            const errText = await resp.text();
+            throw new Error(`Pinata error ${resp.status}: ${errText.slice(0, 100)}`);
+          }
+        } catch (uploadErr) {
+          console.warn("Pinata upload failed, using fallback:", uploadErr);
+          const hashBuf = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+          const hashArr = Array.from(new Uint8Array(hashBuf));
+          cid = "bafybeig" + hashArr.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 52);
+          ipfsUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+          toast.info("IPFS upload simulated (check your Pinata JWT)");
         }
-      } catch {
-        // Fallback: generate a deterministic mock CID for demo
+      } else {
+        // No valid JWT — deterministic local CID derived from file hash
         const hashBuf = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
         const hashArr = Array.from(new Uint8Array(hashBuf));
         cid = "bafybeig" + hashArr.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 52);
-        ipfsUrl = `https://${cid}.ipfs.w3s.link`;
-        toast.info("IPFS upload simulated (add WEB3_STORAGE_TOKEN for live uploads)");
+        ipfsUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+        toast.info("IPFS upload simulated — add Pinata JWT to enable live uploads");
       }
 
       setIpfsCid(cid);
