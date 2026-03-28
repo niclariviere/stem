@@ -52,9 +52,9 @@
 - [x] Final checkpoint and delivery
 
 ## Future / Post-MVP
-- [ ] web3.storage API key integration (VITE_WEB3_STORAGE_TOKEN)
-- [ ] Base mainnet NFT contract deployment
-- [ ] BandLab URL scraper (server-side, parse public share page)
+- [x] Pinata IPFS integration (stemstorage JWT — live, 32 tests passing)
+- [x] Solana replaces Base mainnet (cNFT stem + pNFT song with enforced royalties)
+- [ ] BandLab URL scraper server-side enhancement (client-side metadata parsing implemented)
 - [ ] Admin panel for flag review
 - [ ] Stem flagging auto-hide after 3+ reports
 - [ ] Email/push notifications for match alerts
@@ -65,3 +65,64 @@
 - [x] Update nftMinting.ts to use Pinata for metadata upload
 - [x] Write vitest to validate Pinata API key (32/32 tests passing)
 - [x] Final checkpoint and delivery
+
+## Phase 10 — Base Mainnet NFT Deployment
+- [ ] Read current nftMinting.ts to extract contract ABI and bytecode
+- [ ] Set up Hardhat deployment environment
+- [ ] Compile and deploy StemNFT ERC-721 contract to Base mainnet
+- [ ] Verify contract on Basescan
+- [ ] Update nftMinting.ts with mainnet contract address and chain ID
+- [ ] Update platform UI to reflect mainnet (remove "testnet" labels)
+- [ ] Final checkpoint and delivery
+
+## Phase 10-15 — Solana Migration & Full Minting Architecture
+
+### Phase 10 — Dependencies & Assessment
+- [x] Install @solana/web3.js, @metaplex-foundation/mpl-bubblegum (cNFT), @metaplex-foundation/mpl-token-metadata (pNFT)
+- [x] Install @solana/wallet-adapter-react, @solana/wallet-adapter-phantom for frontend
+- [x] Generate server-side relayer keypair (stored as secret SOLANA_RELAYER_PRIVATE_KEY)
+- [ ] Fund relayer wallet on Solana devnet for testing (requires manual SOL airdrop)
+
+### Phase 11 — Server-Side Solana Relayer
+- [x] server/lib/solanaRelayer.ts — keypair loading, connection, devnet/mainnet config
+- [x] server/lib/mintStemCNFT.ts — Metaplex Bubblegum cNFT minting with royalties
+- [x] server/lib/mintSongPNFT.ts — Metaplex pNFT minting with enforced royalties + equal splits
+- [x] server/lib/splitCalculator.ts — equal split by stem count (free) / custom split (premium)
+- [x] server/relayer/mintRelayer.mjs — Mac Mini batch relayer script
+- [x] server/relayer/setupMerkleTree.mjs — one-time Merkle tree creation
+- [x] server/relayer/RELAYER_SETUP.md — comprehensive Mac Mini setup guide
+
+### Phase 12 — Schema & Routers
+- [x] Add mintQueue table (pending/processing/complete/failed, solana_tx_sig)
+- [x] Add songs table (title, collaborators, stem_ids, mint_status, pnft_address)
+- [x] Add collaborationSplits table (song_id, user_id, stem_count, split_bps, is_custom)
+- [x] DB migration applied (ALTER stems, CREATE mintQueue, songs, collaborationSplits)
+- [x] tRPC: stems.queueMint, songs.create/list/getById/queueMint procedures
+- [x] server/db.ts — all mintQueue, songs, collaborationSplits helpers
+
+### Phase 13 — Frontend Minting UI
+- [x] client/src/lib/phantomWallet.ts — Phantom detection, connect, address validation, explorer URLs
+- [x] StemLibrary.tsx — updated to use queueMint (Solana) instead of EVM updateNft
+- [x] client/src/pages/Songs.tsx — collaborative track creation with royalty split display
+- [x] client/src/App.tsx — /wallet-setup and /songs routes registered
+- [x] EVM/Base Sepolia references replaced with Solana throughout
+
+### Phase 14 — Phantom Onboarding Guide
+- [x] client/src/pages/WalletSetup.tsx — 3-step in-app Phantom onboarding guide
+- [x] Step 1: Install Phantom browser extension (with direct link)
+- [x] Step 2: Create wallet — seed phrase safety instructions
+- [x] Step 3: Connect to STEM platform
+- [x] Step 4: What happens when your stem is minted (relayer handles it — free)
+
+### Phase 15 — Tests & Delivery
+- [x] server/solana-minting.test.ts — 23 tests: splits, wallet validation, mint queue, royalty bps
+- [x] All 55 tests passing (4 test files: auth, stem-matcher, nftstorage, solana-minting)
+- [x] TypeScript: 0 errors
+- [x] Final checkpoint and delivery
+
+## Future — Client Builder Mode (Post-MVP)
+- [ ] Match Engine as client-facing tool: clients assemble tracks from artist stem catalogue
+- [ ] Licensing model: per-use revenue for artists whose stems are selected
+- [ ] Public access tier (no invitation required) for client builders
+- [ ] Track assembly export / streaming within platform
+- [ ] Revenue distribution to artists on each licensed use

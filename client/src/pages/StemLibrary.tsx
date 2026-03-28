@@ -345,24 +345,29 @@ export default function StemLibrary() {
   const [mintTarget, setMintTarget] = useState<{ stem: any; meta: any } | null>(null);
 
   const { data: userStems, isLoading, refetch } = trpc.stems.list.useQuery();
-  const updateNft = trpc.stems.updateNft.useMutation();
+  const queueMint = trpc.stems.queueMint.useMutation();
 
   const { data: profileData } = trpc.profile.get.useQuery();
   const artistName = profileData?.user?.artistName ?? user?.name ?? "Artist";
+  const walletAddress = profileData?.user?.walletAddress ?? "";
 
-  const handleMinted = async (tokenId: string, txHash: string, contractAddress: string) => {
+  const handleQueueMint = async (metadataUri: string) => {
     if (!mintTarget?.stem?.id) return;
+    if (!walletAddress) {
+      toast.error("Add your Solana wallet address in your profile first");
+      return;
+    }
     try {
-      await updateNft.mutateAsync({
+      await queueMint.mutateAsync({
         stemId: mintTarget.stem.id,
-        nftTokenId: tokenId,
-        nftTxHash: txHash,
-        nftContractAddress: contractAddress,
-        nftChain: "base-sepolia",
+        artistWalletAddress: walletAddress,
+        metadataUri,
       });
+      toast.success("Mint queued! Your stem will be minted within 24 hours.");
       refetch();
-    } catch (err) {
-      console.error("Failed to save NFT record:", err);
+      setMintTarget(null);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to queue mint");
     }
   };
 
@@ -432,7 +437,7 @@ export default function StemLibrary() {
             metadata={mintTarget.meta}
             artistName={artistName}
             onClose={() => setMintTarget(null)}
-            onMinted={handleMinted}
+            onMinted={handleQueueMint}
           />
         )}
       </AnimatePresence>

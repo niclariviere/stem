@@ -11,6 +11,8 @@ import EditProfile from "./pages/EditProfile";
 import MatchEngine from "./pages/MatchEngine";
 import StemLibrary from "./pages/StemLibrary";
 import StemUpload from "./pages/StemUpload";
+import WalletSetup from "./pages/WalletSetup";
+import Songs from "./pages/Songs";
 
 function Router() {
   return (
@@ -22,6 +24,8 @@ function Router() {
       <Route path="/match" component={MatchEngine} />
       <Route path="/library" component={StemLibrary} />
       <Route path="/upload" component={StemUpload} />
+      <Route path="/wallet-setup" component={WalletSetup} />
+      <Route path="/songs" component={Songs} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

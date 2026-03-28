@@ -170,19 +170,77 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    updateNft: protectedProcedure
+    /**
+     * Queue a stem for minting (server-side relayer will process it)
+     * Artist provides their Solana wallet address; relayer pays gas.
+     */
+    queueMint: protectedProcedure
       .input(z.object({
         stemId: z.number(),
-        nftTokenId: z.string(),
-        nftTxHash: z.string(),
-        nftContractAddress: z.string(),
-        nftChain: z.string().default("base-sepolia"),
+        artistWalletAddress: z.string().min(32).max(64),
+        metadataUri: z.string().url(),
       }))
       .mutation(async ({ ctx, input }) => {
         const stem = await db.getStemById(input.stemId);
         if (!stem || stem.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
-        await db.updateStemNft(input.stemId, { ...input, isMinted: true });
+        if (stem.isMinted) throw new TRPCError({ code: "BAD_REQUEST", message: "Stem already minted" });
+        // Update stem with pending status
+        await db.updateStemMintStatus(input.stemId, "pending", { nftMetadataUri: input.metadataUri });
+        // Add to mint queue
+        const result = await db.createMintQueueEntry({
+          type: "stem",
+          referenceId: input.stemId,
+          requestedBy: ctx.user.id,
+          artistWalletAddress: input.artistWalletAddress,
+          metadataUri: input.metadataUri,
+        });
+        return { queueId: (result as any)?.insertId ?? 0, status: "pending" };
+      }),
+
+    /**
+     * Update stem after successful Solana mint (called by relayer or directly)
+     */
+    confirmMint: protectedProcedure
+      .input(z.object({
+        stemId: z.number(),
+        solanaTxSig: z.string(),
+        solanaMerkleTree: z.string(),
+        solanaLeafIndex: z.number(),
+        solanaNetwork: z.string().default("devnet"),
+        nftMetadataUri: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const stem = await db.getStemById(input.stemId);
+        if (!stem || stem.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await db.updateStemMintStatus(input.stemId, "minted", {
+          solanaTxSig: input.solanaTxSig,
+          solanaMerkleTree: input.solanaMerkleTree,
+          solanaLeafIndex: input.solanaLeafIndex,
+          solanaNetwork: input.solanaNetwork,
+          nftMetadataUri: input.nftMetadataUri,
+          isMinted: true,
+        });
         return { success: true };
+      }),
+
+    /**
+     * Get mint queue status for a stem
+     */
+    getMintStatus: protectedProcedure
+      .input(z.object({ stemId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const stem = await db.getStemById(input.stemId);
+        if (!stem || stem.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const queueEntry = await db.getMintQueueEntryByStem(input.stemId);
+        return {
+          mintStatus: stem.mintStatus,
+          isMinted: stem.isMinted,
+          solanaTxSig: stem.solanaTxSig,
+          solanaMerkleTree: stem.solanaMerkleTree,
+          solanaLeafIndex: stem.solanaLeafIndex,
+          solanaNetwork: stem.solanaNetwork,
+          queueEntry,
+        };
       }),
   }),
 
@@ -341,6 +399,123 @@ export const appRouter = router({
 
     list: protectedProcedure.query(async ({ ctx }) => {
       return db.getUserBandlabProjects(ctx.user.id);
+    }),
+  }),
+
+  // ── SONGS (collaborative tracks) ────────────────────────────────────────────
+  songs: router({
+    /**
+     * Create a song from matched stems with equal-split royalties (free tier)
+     */
+    create: protectedProcedure
+      .input(z.object({
+        title: z.string().min(1).max(200),
+        stemIds: z.array(z.number()).min(2),
+        genres: z.array(z.string()).optional(),
+        coverImageUrl: z.string().url().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Fetch all stems and their owners
+        const stemDetails = await Promise.all(
+          input.stemIds.map(id => db.getStemById(id))
+        );
+        const validStems = stemDetails.filter(Boolean);
+        // Collect unique collaborators
+        const collaboratorIds = Array.from(new Set(validStems.map(s => s!.userId)));
+        const result = await db.createSong({
+          title: input.title,
+          createdBy: ctx.user.id,
+          stemIds: input.stemIds,
+          collaboratorIds,
+          stemCount: input.stemIds.length,
+          collaboratorCount: collaboratorIds.length,
+          genres: input.genres,
+          coverImageUrl: input.coverImageUrl,
+          splitType: "equal",
+        });
+        const songId = (result as any)?.insertId ?? 0;
+        // Create equal splits for each collaborator
+        if (songId) {
+          const stemCountPerUser: Record<number, number> = {};
+          validStems.forEach(s => {
+            stemCountPerUser[s!.userId] = (stemCountPerUser[s!.userId] ?? 0) + 1;
+          });
+          const baseBps = Math.floor(10000 / collaboratorIds.length);
+          const remainder = 10000 - baseBps * collaboratorIds.length;
+          for (let i = 0; i < collaboratorIds.length; i++) {
+            const uid = collaboratorIds[i];
+            const user = await db.getUserById(uid);
+            if (!user?.walletAddress) continue;
+            const bps = i === collaboratorIds.length - 1 ? baseBps + remainder : baseBps;
+            await db.createCollaborationSplit({
+              songId,
+              userId: uid,
+              walletAddress: user.walletAddress,
+              stemCount: stemCountPerUser[uid] ?? 1,
+              splitBps: bps,
+              splitPercent: parseFloat((bps / 100).toFixed(2)),
+              isCustom: false,
+            });
+          }
+        }
+        return { id: songId };
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserSongs(ctx.user.id);
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ songId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const song = await db.getSongById(input.songId);
+        if (!song) throw new TRPCError({ code: "NOT_FOUND" });
+        const splits = await db.getSongSplits(input.songId);
+        return { song, splits };
+      }),
+
+    /**
+     * Queue a song for pNFT minting (equal split, free tier)
+     */
+    queueMint: protectedProcedure
+      .input(z.object({
+        songId: z.number(),
+        metadataUri: z.string().url(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const song = await db.getSongById(input.songId);
+        if (!song) throw new TRPCError({ code: "NOT_FOUND" });
+        if (song.createdBy !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        if (song.mintStatus !== "none") throw new TRPCError({ code: "BAD_REQUEST", message: "Song already queued or minted" });
+        const user = await db.getUserById(ctx.user.id);
+        if (!user?.walletAddress) throw new TRPCError({ code: "BAD_REQUEST", message: "Wallet address required to mint" });
+        await db.updateSongMintStatus(input.songId, "pending", { metadataUri: input.metadataUri });
+        const result = await db.createMintQueueEntry({
+          type: "song",
+          referenceId: input.songId,
+          requestedBy: ctx.user.id,
+          artistWalletAddress: user.walletAddress,
+          metadataUri: input.metadataUri,
+        });
+        return { queueId: (result as any)?.insertId ?? 0, status: "pending" };
+      }),
+  }),
+
+  // ── MINT QUEUE (relayer status) ───────────────────────────────────────────────
+  mintQueue: router({
+    /**
+     * Get pending mints for the current user
+     */
+    myPending: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserMintQueue(ctx.user.id);
+    }),
+
+    /**
+     * Get all pending mints (admin/relayer use)
+     */
+    allPending: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return db.getPendingMintQueue();
     }),
   }),
 

@@ -27,7 +27,7 @@ export const users = mysqlTable("users", {
   bandlabUrl: varchar("bandlabUrl", { length: 500 }),
   spotifyUrl: varchar("spotifyUrl", { length: 500 }),
   websiteUrl: varchar("websiteUrl", { length: 500 }),
-  walletAddress: varchar("walletAddress", { length: 42 }),
+  walletAddress: varchar("walletAddress", { length: 64 }), // Solana base58 address (44 chars)
   // Invitation system
   isVerified: boolean("isVerified").default(false).notNull(),
   invitedBy: int("invitedBy"),
@@ -70,11 +70,13 @@ export const stems = mysqlTable("stems", {
   duration: float("duration"),
   fileSize: int("fileSize"),
   mimeType: varchar("mimeType", { length: 50 }),
-  // NFT
-  nftTokenId: varchar("nftTokenId", { length: 100 }),
-  nftTxHash: varchar("nftTxHash", { length: 100 }),
-  nftContractAddress: varchar("nftContractAddress", { length: 42 }),
-  nftChain: varchar("nftChain", { length: 50 }).default("base-sepolia"),
+  // Solana NFT (cNFT via Metaplex Bubblegum)
+  mintStatus: mysqlEnum("mintStatus", ["none", "pending", "minted", "failed"]).default("none").notNull(),
+  solanaTxSig: varchar("solanaTxSig", { length: 128 }),
+  solanaMerkleTree: varchar("solanaMerkleTree", { length: 64 }),
+  solanaLeafIndex: int("solanaLeafIndex"),
+  solanaNetwork: varchar("solanaNetwork", { length: 20 }).default("devnet"),
+  nftMetadataUri: text("nftMetadataUri"),
   isMinted: boolean("isMinted").default(false).notNull(),
   // Moderation
   isFlagged: boolean("isFlagged").default(false).notNull(),
@@ -202,3 +204,66 @@ export const stemFlags = mysqlTable("stemFlags", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type StemFlag = typeof stemFlags.$inferSelect;
+
+/**
+ * Mint queue — batch processing for server-side relayer
+ */
+export const mintQueue = mysqlTable("mintQueue", {
+  id: int("id").autoincrement().primaryKey(),
+  type: mysqlEnum("type", ["stem", "song"]).notNull(),
+  referenceId: int("referenceId").notNull(),
+  requestedBy: int("requestedBy").notNull(),
+  artistWalletAddress: varchar("artistWalletAddress", { length: 64 }).notNull(),
+  metadataUri: text("metadataUri"),
+  status: mysqlEnum("status", ["pending", "processing", "complete", "failed"]).default("pending").notNull(),
+  solanaTxSig: varchar("solanaTxSig", { length: 128 }),
+  errorMessage: text("errorMessage"),
+  attempts: int("attempts").default(0).notNull(),
+  processedAt: timestamp("processedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MintQueueEntry = typeof mintQueue.$inferSelect;
+export type InsertMintQueueEntry = typeof mintQueue.$inferInsert;
+
+/**
+ * Songs — collaborative tracks built from matched stems
+ */
+export const songs = mysqlTable("songs", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  createdBy: int("createdBy").notNull(),
+  stemIds: json("stemIds").$type<number[]>().notNull(),
+  collaboratorIds: json("collaboratorIds").$type<number[]>().notNull(),
+  stemCount: int("stemCount").notNull(),
+  collaboratorCount: int("collaboratorCount").notNull(),
+  genres: json("genres").$type<string[]>(),
+  coverImageUrl: text("coverImageUrl"),
+  metadataUri: text("metadataUri"),
+  mintStatus: mysqlEnum("mintStatus", ["none", "pending", "minted", "failed"]).default("none").notNull(),
+  solanaMintAddress: varchar("solanaMintAddress", { length: 64 }),
+  solanaTxSig: varchar("solanaTxSig", { length: 128 }),
+  solanaNetwork: varchar("solanaNetwork", { length: 20 }).default("devnet"),
+  splitType: mysqlEnum("splitType", ["equal", "custom"]).default("equal").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Song = typeof songs.$inferSelect;
+export type InsertSong = typeof songs.$inferInsert;
+
+/**
+ * Collaboration splits — royalty allocation per song per collaborator
+ */
+export const collaborationSplits = mysqlTable("collaborationSplits", {
+  id: int("id").autoincrement().primaryKey(),
+  songId: int("songId").notNull(),
+  userId: int("userId").notNull(),
+  walletAddress: varchar("walletAddress", { length: 64 }).notNull(),
+  stemCount: int("stemCount").notNull(),
+  splitBps: int("splitBps").notNull(),
+  splitPercent: float("splitPercent").notNull(),
+  isCustom: boolean("isCustom").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type CollaborationSplit = typeof collaborationSplits.$inferSelect;
+export type InsertCollaborationSplit = typeof collaborationSplits.$inferInsert;
+

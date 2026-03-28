@@ -12,6 +12,9 @@ import {
   matchNotifications,
   bandlabProjects,
   stemFlags,
+  mintQueue, type InsertMintQueueEntry,
+  songs, type InsertSong,
+  collaborationSplits, type InsertCollaborationSplit,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -341,4 +344,199 @@ export async function getAllPendingFlags() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(stemFlags).where(eq(stemFlags.status, "pending")).orderBy(desc(stemFlags.createdAt));
+}
+
+// ============ SOLANA STEM MINT STATUS ============
+
+export async function updateStemMintStatus(
+  stemId: number,
+  status: "none" | "pending" | "minted" | "failed",
+  extra: {
+    solanaTxSig?: string;
+    solanaMerkleTree?: string;
+    solanaLeafIndex?: number;
+    solanaNetwork?: string;
+    nftMetadataUri?: string;
+    isMinted?: boolean;
+  } = {}
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = { mintStatus: status };
+  if (extra.solanaTxSig !== undefined) updateData.solanaTxSig = extra.solanaTxSig;
+  if (extra.solanaMerkleTree !== undefined) updateData.solanaMerkleTree = extra.solanaMerkleTree;
+  if (extra.solanaLeafIndex !== undefined) updateData.solanaLeafIndex = extra.solanaLeafIndex;
+  if (extra.solanaNetwork !== undefined) updateData.solanaNetwork = extra.solanaNetwork;
+  if (extra.nftMetadataUri !== undefined) updateData.nftMetadataUri = extra.nftMetadataUri;
+  if (extra.isMinted !== undefined) updateData.isMinted = extra.isMinted;
+  return db.update(stems).set(updateData as any).where(eq(stems.id, stemId));
+}
+
+// ============ MINT QUEUE ============
+
+export async function createMintQueueEntry(data: {
+  type: "stem" | "song";
+  referenceId: number;
+  requestedBy: number;
+  artistWalletAddress: string;
+  metadataUri?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(mintQueue).values({
+    type: data.type,
+    referenceId: data.referenceId,
+    requestedBy: data.requestedBy,
+    artistWalletAddress: data.artistWalletAddress,
+    metadataUri: data.metadataUri,
+    status: "pending",
+    attempts: 0,
+  });
+}
+
+export async function getMintQueueEntryByStem(stemId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const results = await db
+    .select()
+    .from(mintQueue)
+    .where(eq(mintQueue.referenceId, stemId))
+    .orderBy(desc(mintQueue.createdAt))
+    .limit(1);
+  return results[0] ?? null;
+}
+
+export async function getUserMintQueue(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(mintQueue)
+    .where(eq(mintQueue.requestedBy, userId))
+    .orderBy(desc(mintQueue.createdAt));
+}
+
+export async function getPendingMintQueue() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(mintQueue)
+    .where(eq(mintQueue.status, "pending"))
+    .orderBy(mintQueue.createdAt);
+}
+
+export async function updateMintQueueEntry(
+  id: number,
+  data: {
+    status?: "pending" | "processing" | "complete" | "failed";
+    solanaTxSig?: string;
+    errorMessage?: string;
+    attempts?: number;
+    processedAt?: Date;
+  }
+) {
+  const db = await getDb();
+  if (!db) return;
+  return db.update(mintQueue).set(data as any).where(eq(mintQueue.id, id));
+}
+
+// ============ SONGS ============
+
+export async function createSong(data: {
+  title: string;
+  createdBy: number;
+  stemIds: number[];
+  collaboratorIds: number[];
+  stemCount: number;
+  collaboratorCount: number;
+  genres?: string[];
+  coverImageUrl?: string;
+  splitType?: "equal" | "custom";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(songs).values({
+    title: data.title,
+    createdBy: data.createdBy,
+    stemIds: data.stemIds,
+    collaboratorIds: data.collaboratorIds,
+    stemCount: data.stemCount,
+    collaboratorCount: data.collaboratorCount,
+    genres: data.genres,
+    coverImageUrl: data.coverImageUrl,
+    splitType: data.splitType ?? "equal",
+    mintStatus: "none",
+  });
+}
+
+export async function getSongById(songId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const results = await db.select().from(songs).where(eq(songs.id, songId)).limit(1);
+  return results[0] ?? null;
+}
+
+export async function getUserSongs(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(songs)
+    .where(eq(songs.createdBy, userId))
+    .orderBy(desc(songs.createdAt));
+}
+
+export async function updateSongMintStatus(
+  songId: number,
+  status: "none" | "pending" | "minted" | "failed",
+  extra: {
+    metadataUri?: string;
+    solanaMintAddress?: string;
+    solanaTxSig?: string;
+    solanaNetwork?: string;
+  } = {}
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = { mintStatus: status };
+  if (extra.metadataUri !== undefined) updateData.metadataUri = extra.metadataUri;
+  if (extra.solanaMintAddress !== undefined) updateData.solanaMintAddress = extra.solanaMintAddress;
+  if (extra.solanaTxSig !== undefined) updateData.solanaTxSig = extra.solanaTxSig;
+  if (extra.solanaNetwork !== undefined) updateData.solanaNetwork = extra.solanaNetwork;
+  return db.update(songs).set(updateData as any).where(eq(songs.id, songId));
+}
+
+// ============ COLLABORATION SPLITS ============
+
+export async function createCollaborationSplit(data: {
+  songId: number;
+  userId: number;
+  walletAddress: string;
+  stemCount: number;
+  splitBps: number;
+  splitPercent: number;
+  isCustom?: boolean;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(collaborationSplits).values({
+    songId: data.songId,
+    userId: data.userId,
+    walletAddress: data.walletAddress,
+    stemCount: data.stemCount,
+    splitBps: data.splitBps,
+    splitPercent: data.splitPercent,
+    isCustom: data.isCustom ?? false,
+  });
+}
+
+export async function getSongSplits(songId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(collaborationSplits)
+    .where(eq(collaborationSplits.songId, songId))
+    .orderBy(desc(collaborationSplits.splitBps));
 }
