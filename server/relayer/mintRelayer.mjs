@@ -51,6 +51,11 @@ async function getDb() {
 }
 
 async function getPendingMints(db) {
+  // Reclaim rows stuck in 'processing' for > 10 minutes (crash recovery).
+  await db.execute(
+    `UPDATE mintQueue SET status = 'pending'
+     WHERE status = 'processing' AND createdAt < (NOW() - INTERVAL 10 MINUTE)`
+  );
   const [rows] = await db.execute(
     `SELECT * FROM mintQueue WHERE status = 'pending' ORDER BY createdAt ASC LIMIT 50`
   );
@@ -191,7 +196,7 @@ async function mintSongPNFT(umi, entry, song, splits) {
     }
   }
 
-  await createNft(umi, {
+  const { signature } = await createNft(umi, {
     mint: nftSigner,
     name: song.title ?? "STEM Song NFT",
     symbol: "STEMS",
@@ -203,10 +208,9 @@ async function mintSongPNFT(umi, entry, song, splits) {
     isMutable: false, // Immutable after mint — permanent record
   }).sendAndConfirm(umi);
 
-  const { signature } = await umi.rpc.getTransaction(nftSigner.publicKey);
   return {
     mintAddress: nftSigner.publicKey.toString(),
-    txSig: Buffer.from(nftSigner.publicKey.bytes).toString("base64"),
+    txSig: Buffer.from(signature).toString("base64"),
   };
 }
 

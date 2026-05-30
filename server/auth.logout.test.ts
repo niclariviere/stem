@@ -13,16 +13,25 @@ type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
   const clearedCookies: CookieCall[] = [];
 
+  const now = new Date();
   const user: AuthenticatedUser = {
     id: 1,
-    openId: "sample-user",
+    openId: "sample@example.com",
     email: "sample@example.com",
     name: "Sample User",
-    loginMethod: "manus",
+    loginMethod: "magic-link",
     role: "user",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
+    artistName: null,
+    bio: null,
+    bandlabUrl: null,
+    spotifyUrl: null,
+    websiteUrl: null,
+    walletAddress: null,
+    isVerified: true,
+    invitedBy: null,
+    createdAt: now,
+    updatedAt: now,
+    lastSignedIn: now,
   };
 
   const ctx: TrpcContext = {
@@ -54,7 +63,7 @@ describe("auth.logout", () => {
     expect(clearedCookies[0]?.options).toMatchObject({
       maxAge: -1,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",
       httpOnly: true,
       path: "/",
     });

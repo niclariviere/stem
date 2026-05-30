@@ -267,3 +267,24 @@ export const collaborationSplits = mysqlTable("collaborationSplits", {
 export type CollaborationSplit = typeof collaborationSplits.$inferSelect;
 export type InsertCollaborationSplit = typeof collaborationSplits.$inferInsert;
 
+/**
+ * Authentication challenges — one-time tokens for magic-link and SIWS flows.
+ * Rows are single-use and expire quickly; old rows can be reaped.
+ */
+export const authChallenges = mysqlTable("authChallenges", {
+  id: int("id").autoincrement().primaryKey(),
+  type: mysqlEnum("type", ["magic-link", "siws"]).notNull(),
+  // Random one-time token (the magic-link URL token, or the SIWS nonce).
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  // Email for magic-link, base58 wallet address for SIWS.
+  identifier: varchar("identifier", { length: 320 }).notNull(),
+  // For magic-link: the invite token to consume on verify (if new user).
+  // For SIWS: the exact plaintext message that the user is expected to sign.
+  payload: text("payload"),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AuthChallenge = typeof authChallenges.$inferSelect;
+export type InsertAuthChallenge = typeof authChallenges.$inferInsert;
+

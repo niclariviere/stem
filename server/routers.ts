@@ -1,7 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { COOKIE_NAME } from "../shared/const";
@@ -10,8 +9,6 @@ import { calculateMatchingScore, findCompatibleStems, filterStems } from "./lib/
 import { ENV } from "./_core/env";
 
 export const appRouter = router({
-  system: systemRouter,
-
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -105,7 +102,8 @@ export const appRouter = router({
         bandlabUrl: z.string().url().optional().or(z.literal("")),
         spotifyUrl: z.string().url().optional().or(z.literal("")),
         websiteUrl: z.string().url().optional().or(z.literal("")),
-        walletAddress: z.string().length(42).optional().or(z.literal("")),
+        // Solana base58 address (32-44 chars), not EVM 42-char hex.
+        walletAddress: z.string().min(32).max(44).optional().or(z.literal("")),
       }))
       .mutation(async ({ ctx, input }) => {
         await db.updateUserProfile(ctx.user.id, input);

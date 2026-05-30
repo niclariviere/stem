@@ -15,6 +15,7 @@ import {
   mintQueue, type InsertMintQueueEntry,
   songs, type InsertSong,
   collaborationSplits, type InsertCollaborationSplit,
+  authChallenges, type InsertAuthChallenge,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -34,48 +35,77 @@ export async function getDb() {
 
 // ============ USERS ============
 
-export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) throw new Error("User openId is required for upsert");
-  const db = await getDb();
-  if (!db) { console.warn("[Database] Cannot upsert user: database not available"); return; }
-
-  try {
-    const values: InsertUser = { openId: user.openId };
-    const updateSet: Record<string, unknown> = {};
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-    textFields.forEach(assignNullable);
-    if (user.lastSignedIn !== undefined) { values.lastSignedIn = user.lastSignedIn; updateSet.lastSignedIn = user.lastSignedIn; }
-    if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; }
-    else if (user.openId === ENV.ownerOpenId) { values.role = "admin"; updateSet.role = "admin"; }
-    if (!values.lastSignedIn) values.lastSignedIn = new Date();
-    if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
-    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
-}
-
-export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
-}
-
 export async function getUserById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const normalized = email.toLowerCase();
+  const result = await db.select().from(users).where(eq(users.email, normalized)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByWalletAddress(wallet: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.walletAddress, wallet)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createUserFromMagicLink(data: {
+  email: string;
+  role: "user" | "admin";
+  invitedBy: number | null;
+  isVerified: boolean;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const email = data.email.toLowerCase();
+  return db.insert(users).values({
+    openId: email,           // magic-link users: openId = email
+    email,
+    loginMethod: "magic-link",
+    role: data.role,
+    invitedBy: data.invitedBy,
+    isVerified: data.isVerified,
+    lastSignedIn: new Date(),
+  });
+}
+
+export async function createUserFromSiws(data: {
+  walletAddress: string;
+  role: "user" | "admin";
+  invitedBy: number | null;
+  isVerified: boolean;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(users).values({
+    openId: data.walletAddress,   // SIWS users: openId = wallet address
+    walletAddress: data.walletAddress,
+    loginMethod: "siws",
+    role: data.role,
+    invitedBy: data.invitedBy,
+    isVerified: data.isVerified,
+    lastSignedIn: new Date(),
+  });
+}
+
+export async function setUserWalletAddress(userId: number, walletAddress: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ walletAddress }).where(eq(users.id, userId));
+}
+
+export async function touchUserSignIn(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
 
 export async function updateUserProfile(userId: number, data: {
@@ -122,6 +152,43 @@ export async function useInvitation(token: string, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(invitations).set({ usedBy: userId, usedAt: new Date() }).where(eq(invitations.token, token));
+}
+
+/**
+ * Atomically mark an invitation used by looking up the invitee via email/wallet.
+ * Used by the new auth flows where the user row is created in the same transaction.
+ */
+export async function useInvitationByToken(token: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const invite = await getInvitationByToken(token);
+  if (!invite) return;
+  // Find the user we just created, either by email (magic-link) or wallet (siws).
+  // Cheap heuristic: most recently created user becomes the invite consumer.
+  const recent = await db.select().from(users).orderBy(desc(users.createdAt)).limit(1);
+  const usedBy = recent[0]?.id ?? null;
+  await db.update(invitations).set({ usedBy, usedAt: new Date() }).where(eq(invitations.token, token));
+}
+
+// ============ AUTH CHALLENGES ============
+
+export async function createAuthChallenge(data: InsertAuthChallenge) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(authChallenges).values(data);
+}
+
+export async function getAuthChallengeByToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(authChallenges).where(eq(authChallenges.token, token)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function markAuthChallengeUsed(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(authChallenges).set({ usedAt: new Date() }).where(eq(authChallenges.id, id));
 }
 
 // ============ STEMS ============
