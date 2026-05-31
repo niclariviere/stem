@@ -102,57 +102,50 @@ export default function Home() {
           ))}
         </motion.div>
 
-        <motion.p
-          className="mt-16 text-xs tracking-widest text-muted-foreground/50 uppercase"
+        {/* Waitlist — primary CTA for non-invited visitors; merged with the
+            "Click anywhere to enter" hint underneath for invited folks. */}
+        <motion.div
+          className="mt-16 max-w-md mx-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2.2 }}
         >
-          Click anywhere to enter
-        </motion.p>
-      </div>
-
-      {/* Waitlist — interest collection while the door stays narrow */}
-      <motion.div
-        className="absolute bottom-20 left-0 right-0 flex justify-center px-6"
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2.4 }}
-      >
-        <div className="surface-glass rounded-2xl px-5 py-4 w-full max-w-md cursor-default">
-          {submitted ? (
-            <p className="text-sm text-muted-foreground text-center">
-              Thanks — we'll reach out when there's room.
-            </p>
-          ) : (
-            <form onSubmit={handleWaitlistSubmit} className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground tracking-wide uppercase">
-                Want to be considered for invitation?
+          <div onClick={(e) => e.stopPropagation()} className="cursor-default">
+            {submitted ? (
+              <p className="text-sm text-muted-foreground text-center">
+                Thanks — we'll reach out when there's room.
               </p>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  required
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex-1 rounded-lg bg-background/50 border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
-                />
-                <button
-                  type="submit"
-                  disabled={waitlistAdd.isPending}
-                  className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition"
-                >
-                  {waitlistAdd.isPending ? "…" : "Notify me"}
-                </button>
-              </div>
-              {error && <p className="text-xs text-destructive">{error}</p>}
-            </form>
-          )}
-        </div>
-      </motion.div>
+            ) : (
+              <form onSubmit={handleWaitlistSubmit} className="flex flex-col gap-3">
+                <p className="text-xs tracking-[0.2em] text-muted-foreground/70 uppercase text-center">
+                  Want to be considered for invitation?
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                    className="flex-1 rounded-lg bg-background/50 border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
+                  />
+                  <button
+                    type="submit"
+                    disabled={waitlistAdd.isPending}
+                    className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition"
+                  >
+                    {waitlistAdd.isPending ? "…" : "Notify me"}
+                  </button>
+                </div>
+                {error && <p className="text-xs text-destructive text-center">{error}</p>}
+              </form>
+            )}
+          </div>
+          <p className="mt-6 text-xs tracking-widest text-muted-foreground/40 uppercase text-center">
+            Already invited? Tap anywhere to enter.
+          </p>
+        </motion.div>
+      </div>
 
       {/* Bottom tagline */}
       <motion.div
