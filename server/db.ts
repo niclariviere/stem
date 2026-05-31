@@ -16,6 +16,7 @@ import {
   songs, type InsertSong,
   collaborationSplits, type InsertCollaborationSplit,
   authChallenges, type InsertAuthChallenge,
+  waitlist,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -288,6 +289,17 @@ export async function getOwnershipLicensing(stemId: number) {
   if (!db) return undefined;
   const result = await db.select().from(ownershipLicensing).where(eq(ownershipLicensing.stemId, stemId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+// ============ WAITLIST ============
+
+export async function addToWaitlist(email: string): Promise<{ alreadyOnList: boolean }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(waitlist).where(eq(waitlist.email, email)).limit(1);
+  if (existing.length > 0) return { alreadyOnList: true };
+  await db.insert(waitlist).values({ email });
+  return { alreadyOnList: false };
 }
 
 // ============ MATCHING SCORES ============

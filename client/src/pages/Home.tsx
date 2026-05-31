@@ -1,10 +1,29 @@
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 const WAVEFORM_CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663277635327/CMCGNeGMcySGyYELtaJwyd/waveform-hero_ba79766b.jpg";
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const waitlistAdd = trpc.waitlist.add.useMutation();
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    try {
+      await waitlistAdd.mutateAsync({ email: trimmed });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err?.message ?? "Couldn't save — try again");
+    }
+  };
 
   return (
     <div
@@ -92,6 +111,48 @@ export default function Home() {
           Click anywhere to enter
         </motion.p>
       </div>
+
+      {/* Waitlist — interest collection while the door stays narrow */}
+      <motion.div
+        className="absolute bottom-20 left-0 right-0 flex justify-center px-6"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 2.4 }}
+      >
+        <div className="surface-glass rounded-2xl px-5 py-4 w-full max-w-md cursor-default">
+          {submitted ? (
+            <p className="text-sm text-muted-foreground text-center">
+              Thanks — we'll reach out when there's room.
+            </p>
+          ) : (
+            <form onSubmit={handleWaitlistSubmit} className="flex flex-col gap-2">
+              <p className="text-xs text-muted-foreground tracking-wide uppercase">
+                Want to be considered for invitation?
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  required
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-1 rounded-lg bg-background/50 border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="submit"
+                  disabled={waitlistAdd.isPending}
+                  className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition"
+                >
+                  {waitlistAdd.isPending ? "…" : "Notify me"}
+                </button>
+              </div>
+              {error && <p className="text-xs text-destructive">{error}</p>}
+            </form>
+          )}
+        </div>
+      </motion.div>
 
       {/* Bottom tagline */}
       <motion.div

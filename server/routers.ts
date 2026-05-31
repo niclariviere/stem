@@ -540,6 +540,19 @@ export const appRouter = router({
         return db.getStemFlags(input.stemId);
       }),
   }),
+
+  // ── WAITLIST ─────────────────────────────────────────────────────────────────
+  waitlist: router({
+    /**
+     * Public — collect interest from the home page. Idempotent on email.
+     */
+    add: publicProcedure
+      .input(z.object({ email: z.string().email().max(320) }))
+      .mutation(async ({ input }) => {
+        const email = input.email.toLowerCase().trim();
+        return db.addToWaitlist(email);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

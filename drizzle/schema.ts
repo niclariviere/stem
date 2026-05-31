@@ -268,6 +268,20 @@ export type CollaborationSplit = typeof collaborationSplits.$inferSelect;
 export type InsertCollaborationSplit = typeof collaborationSplits.$inferInsert;
 
 /**
+ * Public waitlist — emails collected from the home page for users who
+ * want to be considered for an invitation. Stays separate from `invitations`
+ * (which gates actual sign-up) so the list can grow freely without granting
+ * access.
+ */
+export const waitlist = mysqlTable("waitlist", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type WaitlistEntry = typeof waitlist.$inferSelect;
+export type InsertWaitlistEntry = typeof waitlist.$inferInsert;
+
+/**
  * Authentication challenges — one-time tokens for magic-link and SIWS flows.
  * Rows are single-use and expire quickly; old rows can be reaped.
  */
