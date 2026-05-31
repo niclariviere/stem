@@ -71,8 +71,53 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // ── Magic link: verify (link target) ───────────────────────────────────────
-  app.get("/api/auth/magic/verify", async (req: Request, res: Response) => {
+  // GET renders a tiny interstitial page that auto-submits via JS in real
+  // browsers. Preview bots (Messenger, iMessage, WhatsApp, Slack, etc.) fetch
+  // the URL when a user pastes the link into a chat — they parse HTML but do
+  // not execute JS, so they see this page but never trigger the POST. The
+  // token stays unburned until the human actually clicks/lands here.
+  app.get("/api/auth/magic/verify", (req: Request, res: Response) => {
     const token = typeof req.query.token === "string" ? req.query.token : "";
+    if (!token) {
+      res.redirect(302, "/login?error=missing_token");
+      return;
+    }
+    // Defensive escape — tokens are base64url so they have no HTML-unsafe
+    // chars, but never trust input. Keep it server-side.
+    const safeToken = token.replace(/[^A-Za-z0-9_-]/g, "");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, nosnippet, noarchive");
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,nosnippet,noarchive">
+<title>Signing in to STEM…</title>
+<style>
+  html,body{margin:0;background:#0a0a0a;color:#e5e5e5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  .card{text-align:center;max-width:24rem;width:100%}
+  h1{font-size:1.5rem;margin:0 0 .5rem;letter-spacing:.2em;font-weight:600}
+  p{color:#a3a3a3;font-size:.9rem;margin:0 0 1.5rem}
+  button{background:oklch(0.65 0.22 290);color:#fff;border:0;padding:.75rem 2rem;border-radius:.5rem;font-size:.9rem;font-weight:500;cursor:pointer}
+  button:hover{opacity:.9}
+</style>
+</head>
+<body>
+<form id="s" action="/api/auth/magic/verify" method="POST" class="card">
+  <h1>STEM</h1>
+  <p>Signing you in…</p>
+  <input type="hidden" name="token" value="${safeToken}">
+  <button type="submit">Sign in</button>
+</form>
+<script>document.getElementById('s').submit();</script>
+</body>
+</html>`);
+  });
+
+  app.post("/api/auth/magic/verify", async (req: Request, res: Response) => {
+    const token = typeof req.body?.token === "string" ? req.body.token : "";
     if (!token) {
       res.redirect(302, "/login?error=missing_token");
       return;
