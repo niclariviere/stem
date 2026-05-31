@@ -96,8 +96,10 @@ export default function StemUpload() {
       let cid = "";
       let ipfsUrl = "";
 
-      // Use Pinata JWT (stemstorage secret) or NFTSTORAGE_API_KEY fallback
-      const token = import.meta.env.stemstorage ?? import.meta.env.NFTSTORAGE_API_KEY ?? import.meta.env.VITE_WEB3_STORAGE_TOKEN ?? "";
+      // Pinata JWT exposed via Vite client env. Trio-phase only — see TODO
+      // below to move IPFS upload server-side so the JWT stops leaking into
+      // the client bundle before any wider rollout.
+      const token = import.meta.env.VITE_PINATA_JWT ?? "";
 
       if (token && token.startsWith("eyJ")) {
         try {
