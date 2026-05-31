@@ -129,10 +129,11 @@ export async function verifyUser(userId: number) {
 
 // ============ INVITATIONS ============
 
-export async function createInvitation(data: InsertInvitation) {
+export async function createInvitation(data: InsertInvitation): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.insert(invitations).values(data);
+  const [result] = await db.insert(invitations).values(data);
+  return result.insertId;
 }
 
 export async function getInvitationByToken(token: string) {
@@ -193,10 +194,11 @@ export async function markAuthChallengeUsed(id: number) {
 
 // ============ STEMS ============
 
-export async function createStem(data: InsertStem) {
+export async function createStem(data: InsertStem): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.insert(stems).values(data);
+  const [result] = await db.insert(stems).values(data);
+  return result.insertId;
 }
 
 export async function getStemById(id: number) {
@@ -447,10 +449,10 @@ export async function createMintQueueEntry(data: {
   requestedBy: number;
   artistWalletAddress: string;
   metadataUri?: string;
-}) {
+}): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.insert(mintQueue).values({
+  const [result] = await db.insert(mintQueue).values({
     type: data.type,
     referenceId: data.referenceId,
     requestedBy: data.requestedBy,
@@ -459,6 +461,7 @@ export async function createMintQueueEntry(data: {
     status: "pending",
     attempts: 0,
   });
+  return result.insertId;
 }
 
 export async function getMintQueueEntryByStem(stemId: number) {

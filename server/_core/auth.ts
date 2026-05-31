@@ -10,7 +10,13 @@ import * as db from "../db";
 import { ENV } from "./env";
 import { getSessionCookieOptions } from "./cookies";
 
-const CHALLENGE_TTL_MS = 10 * 60 * 1000; // 10 min
+// Magic-link TTL is intentionally long during trio phase: Nic composes a
+// hand-written welcome email containing the link, and the friend may not
+// open it for hours or a day. Revert to 10 min when the request-flow form
+// goes public.
+const MAGIC_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (trio phase)
+// SIWS stays short — "prove you own this wallet right now."
+const SIWS_TTL_MS = 10 * 60 * 1000; // 10 min
 
 function sessionSecret() {
   if (!ENV.cookieSecret) {
@@ -62,7 +68,7 @@ function randomToken(bytes = 32): string {
 
 export async function issueMagicLink(email: string, inviteToken: string | null): Promise<string> {
   const token = randomToken(32);
-  const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS);
+  const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MS);
   await db.createAuthChallenge({
     type: "magic-link",
     token,
@@ -145,7 +151,7 @@ export async function issueSiwsChallenge(wallet: string): Promise<{ nonce: strin
   const nonce = randomToken(16);
   const issuedAt = new Date().toISOString();
   const message = buildSiwsMessage(wallet, nonce, issuedAt);
-  const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS);
+  const expiresAt = new Date(Date.now() + SIWS_TTL_MS);
   await db.createAuthChallenge({
     type: "siws",
     token: nonce,

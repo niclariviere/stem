@@ -1,12 +1,12 @@
 # Cloudflare Tunnel — exposing stem.nixmusic.net
 
 This guide stands up a Cloudflare Tunnel from the Mac Mini so that
-`stem.nixmusic.net` reaches the local dev server at `localhost:3000`.
+`stem.nixmusic.net` reaches the local dev server at `localhost:3001`.
 No router port-forwarding, no public IP exposure, TLS handled at the edge.
 
 ## Prerequisites
 - Your `nixmusic.net` zone is on Cloudflare (already the case).
-- The STEM app is running locally on port 3000 (`pnpm dev`).
+- The STEM app is running locally on port 3001 (`pnpm dev`).
 
 ## One-time setup
 
@@ -38,7 +38,7 @@ credentials-file: /Users/nixai/.cloudflared/<UUID>.json
 
 ingress:
   - hostname: stem.nixmusic.net
-    service: http://localhost:3000
+    service: http://localhost:3001
   - service: http_status:404
 ```
 

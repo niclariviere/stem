@@ -124,7 +124,7 @@ export const appRouter = router({
         mimeType: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const result = await db.createStem({
+        const stemId = await db.createStem({
           userId: ctx.user.id,
           fileName: input.fileName,
           ipfsCid: input.ipfsCid,
@@ -134,7 +134,6 @@ export const appRouter = router({
           fileSize: input.fileSize,
           mimeType: input.mimeType,
         });
-        const stemId = (result as any)?.insertId ?? 0;
         if (stemId) {
           await db.createOwnershipLicensing({ stemId, creatorId: ctx.user.id });
         }
@@ -185,14 +184,14 @@ export const appRouter = router({
         // Update stem with pending status
         await db.updateStemMintStatus(input.stemId, "pending", { nftMetadataUri: input.metadataUri });
         // Add to mint queue
-        const result = await db.createMintQueueEntry({
+        const queueId = await db.createMintQueueEntry({
           type: "stem",
           referenceId: input.stemId,
           requestedBy: ctx.user.id,
           artistWalletAddress: input.artistWalletAddress,
           metadataUri: input.metadataUri,
         });
-        return { queueId: (result as any)?.insertId ?? 0, status: "pending" };
+        return { queueId, status: "pending" };
       }),
 
     /**
