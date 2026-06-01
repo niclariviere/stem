@@ -90,6 +90,8 @@ export const appRouter = router({
           matches: notifications.length,
           collections: collections.length,
         },
+        stems: userStems,
+        collections,
         notifications,
         bandlabProjects,
       };
@@ -349,8 +351,8 @@ export const appRouter = router({
         isPublic: z.boolean().default(false),
       }))
       .mutation(async ({ ctx, input }) => {
-        const result = await db.createCollection({ userId: ctx.user.id, ...input });
-        return { id: (result as any)?.insertId ?? 0 };
+        const id = await db.createCollection({ userId: ctx.user.id, ...input });
+        return { id };
       }),
 
     list: protectedProcedure.query(async ({ ctx }) => {
@@ -551,6 +553,93 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const email = input.email.toLowerCase().trim();
         return db.addToWaitlist(email);
+      }),
+  }),
+
+  // ── USER DIRECTORY ─────────────────────────────────────────────────────────────
+  users: router({
+    /**
+     * Member roster for the user-list page (no private fields).
+     */
+    list: protectedProcedure.query(async () => {
+      return db.listMembers();
+    }),
+  }),
+
+  // ── BUG REPORTS ─────────────────────────────────────────────────────────────────
+  bugs: router({
+    report: protectedProcedure
+      .input(z.object({
+        description: z.string().min(1).max(2000),
+        severity: z.enum(["critical", "severe", "irritating"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.createBugReport({
+          reportedBy: ctx.user.id,
+          description: input.description,
+          severity: input.severity,
+        });
+        return { success: true };
+      }),
+
+    /**
+     * All reports — visible to members so the team can see what's already filed.
+     */
+    list: protectedProcedure.query(async () => {
+      return db.listBugReports();
+    }),
+  }),
+
+  // ── NEWSFEED ─────────────────────────────────────────────────────────────────
+  newsfeed: router({
+    list: protectedProcedure.query(async () => {
+      return db.listNewsfeedPosts();
+    }),
+
+    post: protectedProcedure
+      .input(z.object({
+        body: z.string().max(5000).optional(),
+        attachments: z.array(z.object({
+          type: z.enum(["image", "audio", "video", "link"]),
+          url: z.string().url(),
+          name: z.string().max(255).optional(),
+        })).max(10).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const hasBody = input.body && input.body.trim().length > 0;
+        const hasAttachments = input.attachments && input.attachments.length > 0;
+        if (!hasBody && !hasAttachments) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Post needs text or an attachment" });
+        }
+        const id = await db.createNewsfeedPost({
+          authorId: ctx.user.id,
+          body: input.body,
+          attachments: input.attachments,
+        });
+        return { id };
+      }),
+
+    react: protectedProcedure
+      .input(z.object({
+        postId: z.number(),
+        type: z.enum(["up", "down", "heart"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.setNewsfeedReaction(input.postId, ctx.user.id, input.type);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ postId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const posts = await db.listNewsfeedPosts();
+        const post = posts.find(p => p.id === input.postId);
+        if (!post) throw new TRPCError({ code: "NOT_FOUND" });
+        if (post.authorId !== ctx.user.id && ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        await db.deleteNewsfeedPost(input.postId);
+        return { success: true };
       }),
   }),
 });

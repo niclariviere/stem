@@ -12,29 +12,7 @@ import { toast } from "sonner";
 import {
   buildNFTMetadata, uploadMetadataToIPFS, mintStemNFT, switchToBaseSepolia
 } from "@/lib/nftMinting";
-
-// ── Waveform mini ─────────────────────────────────────────────────────────────
-
-function MiniWaveform({ data }: { data?: number[] }) {
-  if (!data?.length) {
-    return (
-      <div className="flex items-center gap-0.5 h-8">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div key={i} className="w-0.5 rounded-full bg-muted-foreground/20"
-            style={{ height: `${Math.random() * 24 + 4}px` }} />
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className="flex items-center gap-0.5 h-8">
-      {data.slice(0, 40).map((h, i) => (
-        <div key={i} className="w-0.5 rounded-full bg-primary/50"
-          style={{ height: `${Math.max(3, h * 28)}px` }} />
-      ))}
-    </div>
-  );
-}
+import { Waveform } from "@/components/Waveform";
 
 // ── Flag Modal ────────────────────────────────────────────────────────────────
 
@@ -275,6 +253,15 @@ function StemCard({ stem, onFlag, onMint }: {
 }) {
   const { data: meta } = trpc.metadata.getById.useQuery({ stemId: stem.id });
 
+  // 7-day upload→mint window. Computed from createdAt — no stored expiry field.
+  const MINT_WINDOW_DAYS = 7;
+  const daysLeft = stem.isMinted
+    ? null
+    : Math.max(
+        0,
+        Math.ceil(MINT_WINDOW_DAYS - (Date.now() - new Date(stem.createdAt).getTime()) / 86_400_000),
+      );
+
   return (
     <motion.div
       className="surface-glass rounded-xl p-4 hover:border-primary/30 border border-transparent transition-all duration-300"
@@ -295,12 +282,21 @@ function StemCard({ stem, onFlag, onMint }: {
             </p>
           </div>
         </div>
-        {stem.isMinted && (
+        {stem.isMinted ? (
           <span className="text-xs px-2 py-0.5 bg-accent/20 text-accent rounded-full shrink-0 ml-2">Minted</span>
+        ) : daysLeft !== null && (
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full shrink-0 ml-2 ${
+              daysLeft <= 1 ? "bg-destructive/20 text-destructive" : "bg-secondary text-muted-foreground"
+            }`}
+            title="Days left in the 7-day mint window"
+          >
+            {daysLeft === 0 ? "Expires today" : `${daysLeft}d left`}
+          </span>
         )}
       </div>
 
-      <MiniWaveform data={meta?.waveformData as number[] | undefined} />
+      <Waveform data={meta?.waveformData as number[] | undefined} />
 
       {meta && (
         <div className="flex gap-3 mt-3">
@@ -332,6 +328,13 @@ function StemCard({ stem, onFlag, onMint }: {
           <Flag className="h-3 w-3" />
         </button>
       </div>
+
+      {!stem.isMinted && (
+        <p className="text-xs text-muted-foreground/50 mt-3 leading-relaxed">
+          Stems are meant to be minted within {MINT_WINDOW_DAYS} days of upload. Auto-mint after the
+          7-day period, and removal of unminted stems, are coming soon.
+        </p>
+      )}
     </motion.div>
   );
 }

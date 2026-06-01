@@ -17,6 +17,9 @@ import {
   collaborationSplits, type InsertCollaborationSplit,
   authChallenges, type InsertAuthChallenge,
   waitlist,
+  bugReports,
+  newsfeedPosts,
+  newsfeedReactions,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -360,15 +363,16 @@ export async function markNotificationRead(id: number) {
 
 // ============ COLLECTIONS ============
 
-export async function createCollection(data: { userId: number; name: string; description?: string; isPublic?: boolean }) {
+export async function createCollection(data: { userId: number; name: string; description?: string; isPublic?: boolean }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.insert(stemCollections).values({
+  const [result] = await db.insert(stemCollections).values({
     userId: data.userId,
     name: data.name,
     description: data.description,
     isPublic: data.isPublic ?? false,
   });
+  return result.insertId;
 }
 
 export async function getUserCollections(userId: number) {
@@ -621,4 +625,133 @@ export async function getSongSplits(songId: number) {
     .from(collaborationSplits)
     .where(eq(collaborationSplits.songId, songId))
     .orderBy(desc(collaborationSplits.splitBps));
+}
+
+// ============ USER DIRECTORY ============
+
+/**
+ * Roster of all members for the user-list page. Deliberately excludes email
+ * and other private fields — only display identity and join date.
+ */
+export async function listMembers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      artistName: users.artistName,
+      bio: users.bio,
+      role: users.role,
+      isVerified: users.isVerified,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
+}
+
+// ============ BUG REPORTS ============
+
+export async function createBugReport(data: {
+  reportedBy: number;
+  description: string;
+  severity: "critical" | "severe" | "irritating";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(bugReports).values(data);
+}
+
+export async function listBugReports() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(bugReports).orderBy(desc(bugReports.createdAt));
+}
+
+// ============ NEWSFEED ============
+
+export async function createNewsfeedPost(data: {
+  authorId: number;
+  body?: string;
+  attachments?: { type: "image" | "audio" | "video" | "link"; url: string; name?: string }[];
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(newsfeedPosts).values({
+    authorId: data.authorId,
+    body: data.body,
+    attachments: data.attachments,
+  });
+  return result.insertId;
+}
+
+export async function listNewsfeedPosts(limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  // Join author identity + reactions so the client can render in one pass.
+  const posts = await db
+    .select({
+      id: newsfeedPosts.id,
+      authorId: newsfeedPosts.authorId,
+      authorName: users.artistName,
+      authorFallback: users.name,
+      body: newsfeedPosts.body,
+      attachments: newsfeedPosts.attachments,
+      createdAt: newsfeedPosts.createdAt,
+    })
+    .from(newsfeedPosts)
+    .leftJoin(users, eq(newsfeedPosts.authorId, users.id))
+    .orderBy(desc(newsfeedPosts.createdAt))
+    .limit(limit);
+  if (posts.length === 0) return [];
+  const postIds = posts.map(p => p.id);
+  const reactions = await db
+    .select()
+    .from(newsfeedReactions)
+    .where(inArray(newsfeedReactions.postId, postIds));
+  return posts.map(p => {
+    const own = reactions.filter(r => r.postId === p.id);
+    return {
+      ...p,
+      authorName: p.authorName ?? p.authorFallback ?? "Member",
+      reactions: {
+        up: own.filter(r => r.type === "up").length,
+        down: own.filter(r => r.type === "down").length,
+        heart: own.filter(r => r.type === "heart").length,
+      },
+      reactors: own.map(r => ({ userId: r.userId, type: r.type })),
+    };
+  });
+}
+
+export async function deleteNewsfeedPost(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(newsfeedReactions).where(eq(newsfeedReactions.postId, id));
+  await db.delete(newsfeedPosts).where(eq(newsfeedPosts.id, id));
+}
+
+/**
+ * Set or toggle a user's reaction on a post. Passing the type they already
+ * hold clears it; a different type replaces it. At most one row per (post,user).
+ */
+export async function setNewsfeedReaction(
+  postId: number,
+  userId: number,
+  type: "up" | "down" | "heart",
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db
+    .select()
+    .from(newsfeedReactions)
+    .where(and(eq(newsfeedReactions.postId, postId), eq(newsfeedReactions.userId, userId)))
+    .limit(1);
+  if (existing.length > 0) {
+    await db
+      .delete(newsfeedReactions)
+      .where(and(eq(newsfeedReactions.postId, postId), eq(newsfeedReactions.userId, userId)));
+    if (existing[0].type === type) return; // same reaction → cleared
+  }
+  await db.insert(newsfeedReactions).values({ postId, userId, type });
 }

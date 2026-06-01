@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { ArrowLeft, Save, Loader2, Link2, Music, Wallet } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Link2, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -13,7 +13,6 @@ export default function EditProfile() {
   const { user } = useAuth();
   const { data: profileData } = trpc.profile.get.useQuery();
   const updateProfile = trpc.profile.update.useMutation();
-  const parseBandlab = trpc.bandlab.parseProject.useMutation();
 
   const [form, setForm] = useState({
     artistName: "",
@@ -23,7 +22,6 @@ export default function EditProfile() {
     websiteUrl: "",
     walletAddress: "",
   });
-  const [bandlabInput, setBandlabInput] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -51,17 +49,6 @@ export default function EditProfile() {
       toast.error(err.message ?? "Failed to save");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleBandlabImport = async () => {
-    if (!bandlabInput.trim()) return;
-    try {
-      await parseBandlab.mutateAsync({ projectUrl: bandlabInput });
-      toast.success("BandLab project imported!");
-      setBandlabInput("");
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to import BandLab project");
     }
   };
 
@@ -160,31 +147,6 @@ export default function EditProfile() {
                 className="border-border text-muted-foreground hover:text-foreground whitespace-nowrap"
               >
                 <Wallet className="h-4 w-4 mr-2" /> Connect
-              </Button>
-            </div>
-          </div>
-
-          {/* BandLab Import */}
-          <div className="surface-glass rounded-lg p-5 space-y-4">
-            <h2 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase flex items-center gap-2">
-              <Music className="h-3 w-3" /> Import BandLab Project
-            </h2>
-            <p className="text-xs text-muted-foreground">Paste a BandLab shared project URL to import its metadata.</p>
-            <div className="flex gap-2">
-              <Input
-                value={bandlabInput}
-                onChange={e => setBandlabInput(e.target.value)}
-                placeholder="https://www.bandlab.com/post/..."
-                className="bg-secondary border-border text-foreground text-sm flex-1"
-              />
-              <Button
-                type="button"
-                onClick={handleBandlabImport}
-                disabled={parseBandlab.isPending || !bandlabInput.trim()}
-                variant="outline"
-                className="border-border text-muted-foreground hover:text-foreground"
-              >
-                {parseBandlab.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
               </Button>
             </div>
           </div>

@@ -13,6 +13,9 @@ import StemLibrary from "./pages/StemLibrary";
 import StemUpload from "./pages/StemUpload";
 import WalletSetup from "./pages/WalletSetup";
 import Songs from "./pages/Songs";
+import Newsfeed from "./pages/Newsfeed";
+import BugReport from "./pages/BugReport";
+import Users from "./pages/Users";
 
 function Router() {
   return (
@@ -26,6 +29,9 @@ function Router() {
       <Route path="/upload" component={StemUpload} />
       <Route path="/wallet-setup" component={WalletSetup} />
       <Route path="/songs" component={Songs} />
+      <Route path="/feed" component={Newsfeed} />
+      <Route path="/report" component={BugReport} />
+      <Route path="/users" component={Users} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

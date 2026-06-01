@@ -302,3 +302,53 @@ export const authChallenges = mysqlTable("authChallenges", {
 export type AuthChallenge = typeof authChallenges.$inferSelect;
 export type InsertAuthChallenge = typeof authChallenges.$inferInsert;
 
+/**
+ * Bug reports — submitted by beta team members, lives outside the newsfeed.
+ * Three severity levels per the beta spec: critical (blocking), severe
+ * (destructive), irritating (not behaving as expected).
+ */
+export const bugReports = mysqlTable("bugReports", {
+  id: int("id").autoincrement().primaryKey(),
+  reportedBy: int("reportedBy").notNull(),
+  description: text("description").notNull(),
+  severity: mysqlEnum("severity", ["critical", "severe", "irritating"]).notNull(),
+  status: mysqlEnum("status", ["open", "in_progress", "resolved", "wont_fix"]).default("open").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type BugReport = typeof bugReports.$inferSelect;
+export type InsertBugReport = typeof bugReports.$inferInsert;
+
+/**
+ * Newsfeed — team-wide feed open to all beta members. A post carries free text
+ * plus optional attachments (image/audio/video/link), each stored as an IPFS
+ * URL (reusing the stem upload path) or a plain link.
+ */
+export const newsfeedPosts = mysqlTable("newsfeedPosts", {
+  id: int("id").autoincrement().primaryKey(),
+  authorId: int("authorId").notNull(),
+  body: text("body"),
+  attachments: json("attachments").$type<{
+    type: "image" | "audio" | "video" | "link";
+    url: string;
+    name?: string;
+  }[]>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type NewsfeedPost = typeof newsfeedPosts.$inferSelect;
+export type InsertNewsfeedPost = typeof newsfeedPosts.$inferInsert;
+
+/**
+ * Newsfeed reactions — one row per (post, user). Three signals per the spec:
+ * up (+1), down (-1), heart (neutral). A user holds at most one reaction per
+ * post; re-reacting replaces it, clicking the same one clears it.
+ */
+export const newsfeedReactions = mysqlTable("newsfeedReactions", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("postId").notNull(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", ["up", "down", "heart"]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type NewsfeedReaction = typeof newsfeedReactions.$inferSelect;
+export type InsertNewsfeedReaction = typeof newsfeedReactions.$inferInsert;
+

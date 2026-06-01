@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, Upload, Loader2, CheckCircle2, Music, Zap, X,
-  FileAudio, Tag, Cpu
+  FileAudio, Tag, Cpu, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,10 +47,48 @@ export default function StemUpload() {
   const [genreTags, setGenreTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedCollections, setSelectedCollections] = useState<number[]>([]);
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [bandlabInput, setBandlabInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createStem = trpc.stems.create.useMutation();
   const saveMetadata = trpc.metadata.save.useMutation();
+  const { data: collections, refetch: refetchCollections } = trpc.collections.list.useQuery();
+  const createCollection = trpc.collections.create.useMutation();
+  const addStemToCollection = trpc.collections.addStem.useMutation();
+  const parseBandlab = trpc.bandlab.parseProject.useMutation();
+
+  const toggleCollection = (id: number) =>
+    setSelectedCollections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+
+  const handleCreateCollection = async () => {
+    const name = newCollectionName.trim();
+    if (!name) return;
+    if (collections?.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+      toast.error("You already have a collection with that name");
+      return;
+    }
+    try {
+      const res = await createCollection.mutateAsync({ name });
+      setNewCollectionName("");
+      await refetchCollections();
+      if (res.id) setSelectedCollections(prev => [...prev, res.id]);
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to create collection");
+    }
+  };
+
+  const handleBandlabImport = async () => {
+    if (!bandlabInput.trim()) return;
+    try {
+      await parseBandlab.mutateAsync({ projectUrl: bandlabInput.trim() });
+      toast.success("BandLab project imported!");
+      setBandlabInput("");
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to import BandLab project");
+    }
+  };
 
   const handleFile = useCallback(async (f: File) => {
     if (!f.type.startsWith("audio/") && !f.name.match(/\.(mp3|wav|flac|ogg|aac|m4a|aiff)$/i)) {
@@ -168,6 +206,15 @@ export default function StemUpload() {
         waveformData: analysis.waveformData,
       });
 
+      // Assign to any selected collections
+      if (newStemId && selectedCollections.length > 0) {
+        await Promise.all(
+          selectedCollections.map(collectionId =>
+            addStemToCollection.mutateAsync({ collectionId, stemId: newStemId })
+          )
+        );
+      }
+
       setStep("done");
       toast.success("Stem uploaded and stored on IPFS!");
     } catch (err: any) {
@@ -224,6 +271,41 @@ export default function StemUpload() {
             <FileAudio className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-foreground font-display font-medium mb-1">Drop your stem here</p>
             <p className="text-muted-foreground text-sm">MP3, WAV, FLAC, OGG, AAC, M4A — up to 50MB</p>
+          </motion.div>
+        )}
+
+        {/* BandLab import — alternative entry, only when no file is staged */}
+        {!file && (
+          <motion.div
+            className="surface-glass rounded-xl p-5 mt-5"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-2 flex items-center gap-2">
+              <Music className="h-3 w-3" /> Import a BandLab Project
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Paste a BandLab shared project URL to import its metadata.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={bandlabInput}
+                onChange={e => setBandlabInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleBandlabImport()}
+                placeholder="https://www.bandlab.com/post/..."
+                className="bg-secondary border-border text-foreground text-sm flex-1"
+              />
+              <Button
+                type="button"
+                onClick={handleBandlabImport}
+                disabled={parseBandlab.isPending || !bandlabInput.trim()}
+                variant="outline"
+                className="border-border text-muted-foreground hover:text-foreground"
+              >
+                {parseBandlab.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
+              </Button>
+            </div>
           </motion.div>
         )}
 
@@ -312,6 +394,16 @@ export default function StemUpload() {
                     {tag}
                   </button>
                 ))}
+                {genreTags.filter(t => !GENRE_OPTIONS.includes(t)).map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    title="Remove tag"
+                    className="text-xs px-3 py-1.5 rounded-full border border-accent bg-accent/20 text-accent transition-all duration-200 inline-flex items-center gap-1 hover:bg-accent/30"
+                  >
+                    {tag} <X className="h-3 w-3" />
+                  </button>
+                ))}
               </div>
               <div className="flex gap-2">
                 <Input
@@ -323,6 +415,45 @@ export default function StemUpload() {
                 />
                 <Button size="sm" variant="outline" onClick={addCustomTag} className="h-8 border-border">
                   Add
+                </Button>
+              </div>
+            </div>
+
+            {/* Collections */}
+            <div className="surface-glass rounded-xl p-5">
+              <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-3 flex items-center gap-2">
+                <Layers className="h-3 w-3" /> Collections
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {collections?.length ? (
+                  collections.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => toggleCollection(c.id)}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-all duration-200 ${
+                        selectedCollections.includes(c.id)
+                          ? "border-primary bg-primary/20 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground/60">No collections yet — name one below.</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newCollectionName}
+                  onChange={e => setNewCollectionName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleCreateCollection(); } }}
+                  placeholder="New collection name..."
+                  className="bg-secondary border-border text-foreground text-sm h-8"
+                />
+                <Button size="sm" variant="outline" onClick={handleCreateCollection}
+                  disabled={createCollection.isPending || !newCollectionName.trim()} className="h-8 border-border">
+                  Create
                 </Button>
               </div>
             </div>

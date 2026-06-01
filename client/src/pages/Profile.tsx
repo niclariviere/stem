@@ -2,13 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
-  Edit2, Zap, MessageCircle, X, Copy, Check, Plus, Music, Shield,
-  ExternalLink, Upload, Library, LogOut, Bell
+  Edit2, Zap, X, Shield, Plus, Music,
+  ExternalLink, Upload, Library, LogOut, Bell, Rss, Bug, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GenerativeCover } from "@/components/GenerativeCover";
+import { MiniStemCard } from "@/components/MiniStemCard";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { toast } from "sonner";
 
 function StatCard({ label, value, highlight, onClick }: {
   label: string; value: number | string; highlight?: boolean; onClick?: () => void;
@@ -58,73 +59,6 @@ function CatalogSection({ title, items, emptyMsg }: {
   );
 }
 
-function InviteWidget() {
-  const [copied, setCopied] = useState<string | null>(null);
-  const createInvite = trpc.invitations.create.useMutation();
-  const { data: invites, refetch } = trpc.invitations.list.useQuery();
-
-  const handleCreate = async () => {
-    try {
-      const result = await createInvite.mutateAsync({ origin: window.location.origin });
-      toast.success("Invitation created!");
-      refetch();
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to create invitation");
-    }
-  };
-
-  const handleCopy = (url: string, id: number) => {
-    navigator.clipboard.writeText(url);
-    setCopied(String(id));
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  return (
-    <div className="surface-glass rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase">Invite Links</h3>
-        <Button
-          size="sm"
-          onClick={handleCreate}
-          disabled={createInvite.isPending}
-          className="h-7 text-xs gradient-primary text-primary-foreground"
-        >
-          <Plus className="h-3 w-3 mr-1" /> Generate
-        </Button>
-      </div>
-      {!invites?.length ? (
-        <p className="text-sm text-muted-foreground/50 text-center py-3">No invites generated yet</p>
-      ) : (
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {invites.map((inv: any) => {
-            const inviteUrl = `${window.location.origin}/login?invite=${inv.token}`;
-            const isUsed = !!inv.usedBy;
-            const isExpired = inv.expiresAt && new Date(inv.expiresAt) < new Date();
-            return (
-              <div key={inv.id} className={`flex items-center justify-between py-2 px-3 rounded-md ${isUsed || isExpired ? "opacity-40" : "hover:bg-secondary/50"} transition-colors`}>
-                <div>
-                  <span className="text-xs font-mono text-foreground/70">{inv.token.slice(0, 12)}…</span>
-                  <span className={`ml-2 text-xs ${isUsed ? "text-accent" : isExpired ? "text-destructive" : "text-muted-foreground"}`}>
-                    {isUsed ? "Used" : isExpired ? "Expired" : "Active"}
-                  </span>
-                </div>
-                {!isUsed && !isExpired && (
-                  <button
-                    onClick={() => handleCopy(inviteUrl, inv.id)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {copied === String(inv.id) ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Profile() {
   const [, navigate] = useLocation();
   const [chatOpen, setChatOpen] = useState(false);
@@ -138,9 +72,20 @@ export default function Profile() {
   const stats = profileData?.stats ?? { stems: 0, minted: 0, matches: 0, collections: 0 };
   const notifications = profileData?.notifications ?? [];
   const bandlabProjects = profileData?.bandlabProjects ?? [];
+  const stems = profileData?.stems ?? [];
+  const collections = profileData?.collections ?? [];
 
-  const stemItems = [] as { label: string; sub?: string }[];
-  const mintedItems = [] as { label: string; sub?: string }[];
+  const links = ([
+    { label: "Website", url: profileData?.user?.websiteUrl },
+    { label: "Spotify", url: profileData?.user?.spotifyUrl },
+    { label: "BandLab", url: profileData?.user?.bandlabUrl },
+  ] as { label: string; url?: string | null }[])
+    .filter(l => !!l.url)
+    .map(l => {
+      let host = "";
+      try { host = new URL(l.url!).hostname; } catch { /* keep empty */ }
+      return { ...l, favicon: host ? `https://www.google.com/s2/favicons?domain=${host}&sz=64` : "" };
+    });
 
   if (isLoading) {
     return (
@@ -192,6 +137,18 @@ export default function Profile() {
             className="border-border text-muted-foreground hover:text-foreground hover:border-accent/50">
             <Zap className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="icon" onClick={() => navigate("/feed")}
+            className="border-border text-muted-foreground hover:text-foreground hover:border-primary/50">
+            <Rss className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => navigate("/users")}
+            className="border-border text-muted-foreground hover:text-foreground hover:border-primary/50">
+            <Users className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => navigate("/report")}
+            className="border-border text-muted-foreground hover:text-foreground hover:border-destructive/50">
+            <Bug className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="icon" onClick={() => logout()}
             className="border-border text-muted-foreground hover:text-foreground hover:border-destructive/50">
             <LogOut className="h-4 w-4" />
@@ -217,27 +174,107 @@ export default function Profile() {
         />
       </motion.div>
 
-      {/* Catalogs + Invite Widget */}
+      {/* Collections — generative hero tiles */}
       <motion.div
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        className="mb-12"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
       >
-        <div className="lg:col-span-2 space-y-6">
-          <CatalogSection
-            title="Stem Catalog"
-            items={stemItems}
-            emptyMsg="No stems yet — upload your first stem"
-          />
-          <CatalogSection
-            title="BandLab Projects"
-            items={bandlabProjects.map((p: any) => ({ label: p.projectName ?? "Unnamed Project", sub: new Date(p.importedAt).toLocaleDateString() }))}
-            emptyMsg="No BandLab projects imported"
-          />
+        <h2 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-4">Collections</h2>
+        {collections.length === 0 ? (
+          <button
+            onClick={() => navigate("/upload")}
+            className="w-full surface-glass rounded-xl p-8 text-center border border-dashed border-border hover:border-primary/50 transition-colors group"
+          >
+            <div className="w-12 h-12 rounded-xl gradient-primary-subtle mx-auto mb-3 flex items-center justify-center">
+              <Plus className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-sm text-foreground/80">Group your stems into a collection</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Each one gets its own cover automatically</p>
+          </button>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {collections.map((c: any) => (
+              <button
+                key={c.id}
+                onClick={() => navigate("/library")}
+                className="group text-left"
+                title={c.description ?? c.name}
+              >
+                <GenerativeCover
+                  seed={`${c.id}-${c.name}`}
+                  label={c.name}
+                  sub={c.isPublic ? "Public" : "Private"}
+                  className="transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-xl group-hover:shadow-primary/10"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Stems — visual card grid */}
+      <motion.div
+        className="mb-12"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.5 }}
+      >
+        <h2 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-4">Stems</h2>
+        {stems.length === 0 ? (
+          <button
+            onClick={() => navigate("/upload")}
+            className="w-full surface-glass rounded-xl p-10 text-center border border-dashed border-border hover:border-primary/50 transition-colors"
+          >
+            <Music className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-foreground/80">Your stems show up here as sound cards</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Upload your first to bring this profile to life</p>
+          </button>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {stems.map((s: any) => <MiniStemCard key={s.id} stem={s} />)}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Links + Wallet + BandLab */}
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.6 }}
+      >
+        <div className="surface-glass rounded-lg p-5">
+          <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-4">Links</h3>
+          {links.length === 0 ? (
+            <p className="text-sm text-muted-foreground/50 py-2">No links added yet</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {links.map((l) => (
+                <a
+                  key={l.label}
+                  href={l.url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 py-1.5 px-3 rounded-full border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground/80"
+                >
+                  {l.favicon
+                    ? <img src={l.favicon} alt="" className="w-4 h-4 rounded-sm" />
+                    : <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
+                  {l.label}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
         <div className="space-y-6">
-          <InviteWidget />
+          {bandlabProjects.length > 0 && (
+            <CatalogSection
+              title="BandLab Projects"
+              items={bandlabProjects.map((p: any) => ({ label: p.projectName ?? "Unnamed Project", sub: new Date(p.importedAt).toLocaleDateString() }))}
+            />
+          )}
           {profileData?.user?.walletAddress && (
             <div className="surface-glass rounded-lg p-5">
               <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-3">Wallet</h3>
