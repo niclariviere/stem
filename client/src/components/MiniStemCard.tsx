@@ -1,6 +1,6 @@
 import { Music } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { Waveform } from "./Waveform";
+import { StemPlayer } from "./StemPlayer";
 
 /**
  * Display-only stem card for the profile — the library card's visual language
@@ -29,7 +29,10 @@ export function MiniStemCard({ stem }: { stem: any }) {
         )}
       </div>
 
-      <Waveform data={meta?.waveformData as number[] | undefined} />
+      <StemPlayer
+        src={stem.ipfsUrl || stem.s3Url}
+        waveform={meta?.waveformData as number[] | undefined}
+      />
 
       {meta && (meta.bpm || meta.key || meta.instrumentType) && (
         <div className="flex flex-wrap gap-3 mt-3">

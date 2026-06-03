@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   buildNFTMetadata, uploadMetadataToIPFS, mintStemNFT, switchToBaseSepolia
 } from "@/lib/nftMinting";
-import { Waveform } from "@/components/Waveform";
+import { StemPlayer } from "@/components/StemPlayer";
 
 // ── Flag Modal ────────────────────────────────────────────────────────────────
 
@@ -296,7 +296,10 @@ function StemCard({ stem, onFlag, onMint }: {
         )}
       </div>
 
-      <Waveform data={meta?.waveformData as number[] | undefined} />
+      <StemPlayer
+        src={stem.ipfsUrl || stem.s3Url}
+        waveform={meta?.waveformData as number[] | undefined}
+      />
 
       {meta && (
         <div className="flex gap-3 mt-3">
