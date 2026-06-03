@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
-  Edit2, Zap, X, Shield, Plus, Music,
+  Edit2, X, Shield, Plus, Music,
   ExternalLink, Upload, Library, LogOut, Bell, Rss, Bug, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -134,10 +134,6 @@ export default function Profile() {
           <Button variant="outline" size="icon" onClick={() => navigate("/library")}
             className="border-border text-muted-foreground hover:text-foreground hover:border-accent/50">
             <Library className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => navigate("/match")}
-            className="border-border text-muted-foreground hover:text-foreground hover:border-accent/50">
-            <Zap className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon" onClick={() => navigate("/feed")}
             className="border-border text-muted-foreground hover:text-foreground hover:border-primary/50">
