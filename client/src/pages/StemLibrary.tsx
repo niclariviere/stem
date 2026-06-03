@@ -13,6 +13,7 @@ import {
   buildNFTMetadata, uploadMetadataToIPFS, mintStemNFT, switchToBaseSepolia
 } from "@/lib/nftMinting";
 import { StemPlayer } from "@/components/StemPlayer";
+import { StemManageControls } from "@/components/StemManageControls";
 
 // ── Flag Modal ────────────────────────────────────────────────────────────────
 
@@ -338,6 +339,8 @@ function StemCard({ stem, onFlag, onMint }: {
           7-day period, and removal of unminted stems, are coming soon.
         </p>
       )}
+
+      <StemManageControls stem={stem} />
     </motion.div>
   );
 }

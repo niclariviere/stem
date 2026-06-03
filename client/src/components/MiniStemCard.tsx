@@ -1,6 +1,7 @@
 import { Music } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { StemPlayer } from "./StemPlayer";
+import { StemManageControls } from "./StemManageControls";
 
 /**
  * Display-only stem card for the profile — the library card's visual language
@@ -43,6 +44,8 @@ export function MiniStemCard({ stem }: { stem: any }) {
           ) : null}
         </div>
       )}
+
+      <StemManageControls stem={stem} />
     </div>
   );
 }

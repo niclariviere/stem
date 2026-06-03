@@ -83,6 +83,8 @@ export const stems = mysqlTable("stems", {
   flagReason: text("flagReason"),
   flaggedBy: int("flaggedBy"),
   flaggedAt: timestamp("flaggedAt"),
+  // Whether this stem is showcased on the creator's profile (managed per-stem).
+  showOnProfile: boolean("showOnProfile").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

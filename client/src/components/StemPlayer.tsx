@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Play, Pause } from "lucide-react";
 import { Waveform } from "./Waveform";
 
@@ -6,11 +6,12 @@ import { Waveform } from "./Waveform";
  * Inline stem player — play/pause + a seekable waveform + time readout.
  * Reuses the shared Waveform as the scrub bar (played bars light up).
  *
- * `src` is the stem's audio URL (ipfsUrl / s3Url). If absent, the control is
- * disabled. Only one StemPlayer plays at a time: starting one broadcasts a
- * window event that pauses every other instance.
+ * Only one stem plays at a time, enforced deterministically: a module-level
+ * reference to the currently-playing <audio> is paused synchronously before a
+ * new one starts (no event round-trip → no races). `src` is the stem's audio
+ * URL (ipfsUrl / s3Url); the control is disabled when there's no audio.
  */
-const PLAY_EVENT = "stemplayer:play";
+let activeAudio: HTMLAudioElement | null = null;
 
 function fmt(s: number) {
   if (!isFinite(s) || s <= 0) return "0:00";
@@ -20,28 +21,29 @@ function fmt(s: number) {
 }
 
 export function StemPlayer({ src, waveform }: { src?: string | null; waveform?: number[] }) {
-  const id = useId();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Pause this instance when another StemPlayer starts.
+  // If this instance unmounts while it's the active one, release the slot.
   useEffect(() => {
-    const onOtherPlay = (e: Event) => {
-      const detail = (e as CustomEvent<{ id: string }>).detail;
-      if (detail?.id !== id) audioRef.current?.pause();
+    return () => {
+      if (activeAudio === audioRef.current) activeAudio = null;
     };
-    window.addEventListener(PLAY_EVENT, onOtherPlay);
-    return () => window.removeEventListener(PLAY_EVENT, onOtherPlay);
-  }, [id]);
+  }, []);
 
   const toggle = () => {
     const a = audioRef.current;
     if (!a || !src) return;
-    if (a.paused) a.play().catch(() => {});
-    else a.pause();
+    if (a.paused) {
+      if (activeAudio && activeAudio !== a) activeAudio.pause(); // stop the other, synchronously
+      activeAudio = a;
+      a.play().catch(() => {});
+    } else {
+      a.pause();
+    }
   };
 
   const seek = (frac: number) => {
@@ -73,15 +75,13 @@ export function StemPlayer({ src, waveform }: { src?: string | null; waveform?: 
         ref={audioRef}
         src={src ?? undefined}
         preload="metadata"
-        onPlay={() => {
-          setPlaying(true);
-          window.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail: { id } }));
-        }}
+        onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => {
           setPlaying(false);
           setProgress(0);
           setCurrent(0);
+          if (activeAudio === audioRef.current) activeAudio = null;
         }}
         onTimeUpdate={e => {
           const a = e.currentTarget;

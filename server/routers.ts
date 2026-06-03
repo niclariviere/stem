@@ -90,7 +90,7 @@ export const appRouter = router({
           matches: notifications.length,
           collections: collections.length,
         },
-        stems: userStems,
+        stems: userStems.filter(s => s.showOnProfile !== false),
         collections,
         notifications,
         bandlabProjects,
@@ -166,6 +166,15 @@ export const appRouter = router({
         const stem = await db.getStemById(input.stemId);
         if (!stem || stem.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         await db.deleteStem(input.stemId);
+        return { success: true };
+      }),
+
+    setShowOnProfile: protectedProcedure
+      .input(z.object({ stemId: z.number(), show: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const stem = await db.getStemById(input.stemId);
+        if (!stem || stem.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await db.setStemShowOnProfile(input.stemId, input.show);
         return { success: true };
       }),
 
@@ -588,6 +597,21 @@ export const appRouter = router({
     list: protectedProcedure.query(async () => {
       return db.listBugReports();
     }),
+
+    /**
+     * Update a bug's status (admin only) — used to mark a bug FIXED (resolved)
+     * or reopen it.
+     */
+    setStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["open", "in_progress", "resolved", "wont_fix"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        await db.setBugStatus(input.id, input.status);
+        return { success: true };
+      }),
   }),
 
   // ── NEWSFEED ─────────────────────────────────────────────────────────────────

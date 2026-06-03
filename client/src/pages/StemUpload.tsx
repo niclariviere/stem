@@ -49,7 +49,6 @@ export default function StemUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedCollections, setSelectedCollections] = useState<number[]>([]);
   const [newCollectionName, setNewCollectionName] = useState("");
-  const [bandlabInput, setBandlabInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createStem = trpc.stems.create.useMutation();
@@ -57,7 +56,6 @@ export default function StemUpload() {
   const { data: collections, refetch: refetchCollections } = trpc.collections.list.useQuery();
   const createCollection = trpc.collections.create.useMutation();
   const addStemToCollection = trpc.collections.addStem.useMutation();
-  const parseBandlab = trpc.bandlab.parseProject.useMutation();
 
   const toggleCollection = (id: number) =>
     setSelectedCollections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
@@ -76,17 +74,6 @@ export default function StemUpload() {
       if (res.id) setSelectedCollections(prev => [...prev, res.id]);
     } catch (e: any) {
       toast.error(e.message ?? "Failed to create collection");
-    }
-  };
-
-  const handleBandlabImport = async () => {
-    if (!bandlabInput.trim()) return;
-    try {
-      await parseBandlab.mutateAsync({ projectUrl: bandlabInput.trim() });
-      toast.success("BandLab project imported!");
-      setBandlabInput("");
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to import BandLab project");
     }
   };
 
@@ -271,41 +258,6 @@ export default function StemUpload() {
             <FileAudio className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-foreground font-display font-medium mb-1">Drop your stem here</p>
             <p className="text-muted-foreground text-sm">MP3, WAV, FLAC, OGG, AAC, M4A — up to 50MB</p>
-          </motion.div>
-        )}
-
-        {/* BandLab import — alternative entry, only when no file is staged */}
-        {!file && (
-          <motion.div
-            className="surface-glass rounded-xl p-5 mt-5"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-2 flex items-center gap-2">
-              <Music className="h-3 w-3" /> Import a BandLab Project
-            </h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Paste a BandLab shared project URL to import its metadata.
-            </p>
-            <div className="flex gap-2">
-              <Input
-                value={bandlabInput}
-                onChange={e => setBandlabInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleBandlabImport()}
-                placeholder="https://www.bandlab.com/post/..."
-                className="bg-secondary border-border text-foreground text-sm flex-1"
-              />
-              <Button
-                type="button"
-                onClick={handleBandlabImport}
-                disabled={parseBandlab.isPending || !bandlabInput.trim()}
-                variant="outline"
-                className="border-border text-muted-foreground hover:text-foreground"
-              >
-                {parseBandlab.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
-              </Button>
-            </div>
           </motion.div>
         )}
 

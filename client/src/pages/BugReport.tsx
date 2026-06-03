@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { ArrowLeft, Bug } from "lucide-react";
+import { ArrowLeft, Bug, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
@@ -22,13 +22,17 @@ function severityMeta(value: string) {
 
 export default function BugReport() {
   const [, navigate] = useLocation();
-  useAuth({ redirectOnUnauthenticated: true });
+  const { user } = useAuth({ redirectOnUnauthenticated: true });
 
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<Severity>("irritating");
 
   const report = trpc.bugs.report.useMutation();
   const { data: reports, refetch } = trpc.bugs.list.useQuery();
+  const setStatus = trpc.bugs.setStatus.useMutation({
+    onSuccess: () => refetch(),
+    onError: e => toast.error(e.message ?? "Couldn't update status"),
+  });
 
   const handleSubmit = async () => {
     if (!description.trim()) {
@@ -113,17 +117,44 @@ export default function BugReport() {
         ) : (
           reports.map((b: any) => {
             const meta = severityMeta(b.severity);
+            const fixed = b.status === "resolved";
+            const isAdmin = user?.role === "admin";
             return (
-              <div key={b.id} className="surface-glass rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded border ${meta.tone}`}>
-                    {meta.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {b.status} · {new Date(b.createdAt).toLocaleDateString()}
-                  </span>
+              <div
+                key={b.id}
+                className={`rounded-lg p-4 transition-colors ${
+                  fixed ? "border border-accent/50 bg-accent/10" : "surface-glass"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded border ${meta.tone}`}>
+                      {meta.label}
+                    </span>
+                    {fixed && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-accent/20 text-accent border border-accent/40">
+                        <CheckCircle2 className="h-3 w-3" /> FIXED
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(b.createdAt).toLocaleDateString()}
+                    </span>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setStatus.mutate({ id: b.id, status: fixed ? "open" : "resolved" })}
+                        disabled={setStatus.isPending}
+                        className="text-xs text-muted-foreground hover:text-foreground border border-border rounded px-2 py-0.5 transition-colors disabled:opacity-40"
+                      >
+                        {fixed ? "Reopen" : "Mark fixed"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm text-foreground/80 whitespace-pre-wrap">{b.description}</p>
+                <p className={`text-sm whitespace-pre-wrap ${fixed ? "text-foreground/45" : "text-foreground/80"}`}>
+                  {b.description}
+                </p>
               </div>
             );
           })

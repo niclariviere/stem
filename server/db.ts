@@ -668,6 +668,21 @@ export async function listBugReports() {
   return db.select().from(bugReports).orderBy(desc(bugReports.createdAt));
 }
 
+export async function setBugStatus(
+  id: number,
+  status: "open" | "in_progress" | "resolved" | "wont_fix",
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(bugReports).set({ status }).where(eq(bugReports.id, id));
+}
+
+export async function setStemShowOnProfile(stemId: number, showOnProfile: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(stems).set({ showOnProfile }).where(eq(stems.id, stemId));
+}
+
 // ============ NEWSFEED ============
 
 export async function createNewsfeedPost(data: {
