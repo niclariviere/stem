@@ -157,6 +157,32 @@ export default function Profile() {
       </motion.div>
 
       {/* Stats */}
+      {/* Links — favicon chips, sitting right on top of the stats */}
+      {links.length > 0 && (
+        <motion.div
+          className="flex flex-wrap gap-2 mb-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          {links.map((l) => (
+            <a
+              key={l.label}
+              href={l.url!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 py-1.5 px-3 rounded-full border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground/80"
+            >
+              {l.favicon
+                ? <img src={l.favicon} alt="" className="w-4 h-4 rounded-sm" />
+                : <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
+              {l.label}
+            </a>
+          ))}
+        </motion.div>
+      )}
+
+      {/* Stats */}
       <motion.div
         className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-12"
         initial={{ opacity: 0, y: 10 }}
@@ -238,37 +264,14 @@ export default function Profile() {
         )}
       </motion.div>
 
-      {/* Links + Wallet + BandLab */}
-      <motion.div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.6 }}
-      >
-        <div className="surface-glass rounded-lg p-5">
-          <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-4">Links</h3>
-          {links.length === 0 ? (
-            <p className="text-sm text-muted-foreground/50 py-2">No links added yet</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {links.map((l) => (
-                <a
-                  key={l.label}
-                  href={l.url!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 py-1.5 px-3 rounded-full border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground/80"
-                >
-                  {l.favicon
-                    ? <img src={l.favicon} alt="" className="w-4 h-4 rounded-sm" />
-                    : <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
-                  {l.label}
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="space-y-6">
+      {/* Wallet (+ any BandLab projects) */}
+      {(profileData?.user?.walletAddress || bandlabProjects.length > 0) && (
+        <motion.div
+          className="space-y-6 max-w-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
           {bandlabProjects.length > 0 && (
             <CatalogSection
               title="BandLab Projects"
@@ -281,8 +284,8 @@ export default function Profile() {
               <p className="text-xs font-mono text-foreground/70 break-all">{profileData.user.walletAddress}</p>
             </div>
           )}
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Match Notifications Chat Overlay */}
       <AnimatePresence>

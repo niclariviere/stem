@@ -44,13 +44,13 @@ export function GenerativeCover({
 
   return (
     <div
-      className={`relative aspect-square w-full overflow-hidden rounded-xl ${className}`}
+      className={`relative aspect-[2/1] w-full overflow-hidden rounded-xl ${className}`}
       style={{
         background: `linear-gradient(135deg, oklch(0.58 0.19 ${hue1}), oklch(0.42 0.21 ${hue2}))`,
       }}
     >
       {/* seeded "sound signature" bars */}
-      <div className="absolute inset-0 flex items-end justify-center gap-[3px] px-4 pb-6 opacity-80">
+      <div className="absolute inset-0 flex items-end justify-center gap-[3px] px-4 pb-4 opacity-80">
         {bars.map((h, i) => (
           <div key={i} className="flex-1 rounded-full bg-white/70" style={{ height: `${h}%` }} />
         ))}
