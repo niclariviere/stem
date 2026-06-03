@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { GenerativeCover } from "@/components/GenerativeCover";
 import { MiniStemCard } from "@/components/MiniStemCard";
+import { CompactStemRow } from "@/components/CompactStemRow";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -62,6 +63,7 @@ function CatalogSection({ title, items, emptyMsg }: {
 export default function Profile() {
   const [, navigate] = useLocation();
   const [chatOpen, setChatOpen] = useState(false);
+  const [expandedCollection, setExpandedCollection] = useState<number | null>(null);
   const { user, logout } = useAuth();
 
   const { data: profileData, isLoading } = trpc.profile.get.useQuery();
@@ -221,21 +223,45 @@ export default function Profile() {
           </button>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {collections.map((c: any) => (
-              <button
-                key={c.id}
-                onClick={() => navigate("/library")}
-                className="group text-left"
-                title={c.description ?? c.name}
-              >
-                <GenerativeCover
-                  seed={`${c.id}-${c.name}`}
-                  label={c.name}
-                  sub={c.isPublic ? "Public" : "Private"}
-                  className="transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-xl group-hover:shadow-primary/10"
-                />
-              </button>
-            ))}
+            {collections.map((c: any) => {
+              const open = expandedCollection === c.id;
+              const items = stems.filter((s: any) => s.collectionId === c.id);
+              return (
+                <div key={c.id} className="relative">
+                  <button
+                    onClick={() => setExpandedCollection(open ? null : c.id)}
+                    className="group text-left w-full"
+                    title={c.description ?? c.name}
+                  >
+                    <GenerativeCover
+                      seed={`${c.id}-${c.name}`}
+                      label={c.name}
+                      sub={c.isPublic ? "Public" : "Private"}
+                      className={`transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-xl group-hover:shadow-primary/10 ${open ? "ring-1 ring-primary/50" : ""}`}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {open && (
+                      <motion.div
+                        className="absolute left-0 top-full w-full z-20 mt-2 surface-glass rounded-xl p-2 shadow-xl shadow-black/40 max-h-72 overflow-y-auto"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {items.length === 0 ? (
+                          <p className="text-xs text-muted-foreground/60 text-center py-3">No stems in this collection yet</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {items.map((s: any) => <CompactStemRow key={s.id} stem={s} />)}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         )}
       </motion.div>
