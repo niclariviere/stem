@@ -215,7 +215,24 @@ export async function getStemById(id: number) {
 export async function getUserStems(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(stems).where(eq(stems.userId, userId)).orderBy(desc(stems.createdAt));
+  const rows = await db.select().from(stems).where(eq(stems.userId, userId)).orderBy(desc(stems.createdAt));
+  if (rows.length === 0) return rows.map(s => ({ ...s, collectionId: null as number | null, collectionName: null as string | null }));
+  const links = await db
+    .select({
+      stemId: collectionStems.stemId,
+      collectionId: collectionStems.collectionId,
+      name: stemCollections.name,
+    })
+    .from(collectionStems)
+    .innerJoin(stemCollections, eq(collectionStems.collectionId, stemCollections.id))
+    .where(inArray(collectionStems.stemId, rows.map(s => s.id)));
+  const byStem = new Map<number, { collectionId: number; name: string }>();
+  for (const l of links) if (!byStem.has(l.stemId)) byStem.set(l.stemId, { collectionId: l.collectionId, name: l.name });
+  return rows.map(s => ({
+    ...s,
+    collectionId: (byStem.get(s.id)?.collectionId ?? null) as number | null,
+    collectionName: (byStem.get(s.id)?.name ?? null) as string | null,
+  }));
 }
 
 export async function getAllPublicStems(limit = 100) {
@@ -385,6 +402,19 @@ export async function addStemToCollection(collectionId: number, stemId: number, 
   const db = await getDb();
   if (!db) return;
   await db.insert(collectionStems).values({ collectionId, stemId, order });
+}
+
+/**
+ * Set a stem's collection (single-collection model used by the card dropdown):
+ * clears any existing membership, then joins the given collection if non-null.
+ */
+export async function setStemCollection(stemId: number, collectionId: number | null) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(collectionStems).where(eq(collectionStems.stemId, stemId));
+  if (collectionId != null) {
+    await db.insert(collectionStems).values({ collectionId, stemId, order: 0 });
+  }
 }
 
 // ============ BANDLAB PROJECTS ============

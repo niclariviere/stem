@@ -374,6 +374,24 @@ export const appRouter = router({
         await db.addStemToCollection(input.collectionId, input.stemId, input.order);
         return { success: true };
       }),
+
+    /**
+     * Set (or clear, with null) a stem's collection — single-collection model
+     * used by the per-stem dropdown. Verifies the stem and collection are the
+     * caller's.
+     */
+    setStemCollection: protectedProcedure
+      .input(z.object({ stemId: z.number(), collectionId: z.number().nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        const stem = await db.getStemById(input.stemId);
+        if (!stem || stem.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        if (input.collectionId != null) {
+          const cols = await db.getUserCollections(ctx.user.id);
+          if (!cols.some(c => c.id === input.collectionId)) throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        await db.setStemCollection(input.stemId, input.collectionId);
+        return { success: true };
+      }),
   }),
 
   // ── BANDLAB ───────────────────────────────────────────────────────────────────
