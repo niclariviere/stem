@@ -182,7 +182,7 @@ export default function Profile() {
 
       {/* Stats */}
       <motion.div
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-12"
+        className="grid grid-cols-3 gap-3 mb-12"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
@@ -190,12 +190,6 @@ export default function Profile() {
         <StatCard label="Stems" value={stats.stems} />
         <StatCard label="Minted NFTs" value={stats.minted} />
         <StatCard label="Collections" value={stats.collections} />
-        <StatCard
-          label={notifications.length > 0 ? `${notifications.length} new match${notifications.length > 1 ? "es" : ""}!` : "Matches"}
-          value={notifications.length}
-          highlight={notifications.length > 0}
-          onClick={notifications.length > 0 ? () => setChatOpen(true) : undefined}
-        />
       </motion.div>
 
       {/* Collections — generative hero tiles */}
