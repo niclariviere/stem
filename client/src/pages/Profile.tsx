@@ -76,6 +76,8 @@ export default function Profile() {
   const bandlabProjects = profileData?.bandlabProjects ?? [];
   const stems = profileData?.stems ?? [];
   const collections = profileData?.collections ?? [];
+  // Loose stems only — anything in a collection shows under its cover, not also in the grid.
+  const looseStems = stems.filter((s: any) => !s.collectionId);
 
   const links = ([
     { label: "Website", url: profileData?.user?.websiteUrl },
@@ -264,7 +266,7 @@ export default function Profile() {
         transition={{ duration: 0.6, delay: 0.5 }}
       >
         <h2 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-4">Stems</h2>
-        {stems.length === 0 ? (
+        {looseStems.length === 0 ? (
           <button
             onClick={() => navigate("/upload")}
             className="w-full surface-glass rounded-xl p-10 text-center border border-dashed border-border hover:border-primary/50 transition-colors"
@@ -275,7 +277,7 @@ export default function Profile() {
           </button>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stems.map((s: any) => <MiniStemCard key={s.id} stem={s} />)}
+            {looseStems.map((s: any) => <MiniStemCard key={s.id} stem={s} />)}
           </div>
         )}
       </motion.div>
