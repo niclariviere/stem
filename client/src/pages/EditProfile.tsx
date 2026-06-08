@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { connectPhantom, isValidSolanaAddress, shortenAddress } from "@/lib/phantomWallet";
 import { toast } from "sonner";
 
 export default function EditProfile() {
@@ -53,18 +54,16 @@ export default function EditProfile() {
   };
 
   const handleConnectWallet = async () => {
-    const eth = (window as any).ethereum;
-    if (typeof eth === "undefined") {
-      toast.error("MetaMask not found. Please install MetaMask to connect a wallet.");
-      return;
-    }
     try {
-      const accounts = await eth.request({ method: "eth_requestAccounts" });
-      const address = accounts[0];
+      const address = await connectPhantom();
+      if (!isValidSolanaAddress(address)) {
+        toast.error("That doesn't look like a valid Solana address");
+        return;
+      }
       setForm(f => ({ ...f, walletAddress: address }));
-      toast.success("Wallet connected: " + address.slice(0, 8) + "...");
+      toast.success("Wallet connected: " + shortenAddress(address));
     } catch (err: any) {
-      toast.error("Wallet connection failed");
+      toast.error(err?.message ?? "Wallet connection failed");
     }
   };
 
@@ -132,12 +131,12 @@ export default function EditProfile() {
             <h2 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase flex items-center gap-2">
               <Wallet className="h-3 w-3" /> Wallet Address
             </h2>
-            <p className="text-xs text-muted-foreground">Required for NFT minting. Connect MetaMask or enter manually.</p>
+            <p className="text-xs text-muted-foreground">Your Solana wallet, for NFT minting. Connect Phantom or enter the address manually.</p>
             <div className="flex gap-2">
               <Input
                 value={form.walletAddress}
                 onChange={e => setForm(f => ({ ...f, walletAddress: e.target.value }))}
-                placeholder="0x..."
+                placeholder="Your Solana wallet address"
                 className="bg-secondary border-border text-foreground font-mono text-sm flex-1"
               />
               <Button

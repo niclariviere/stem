@@ -2,16 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft, Upload, Zap, Flag, Music, ExternalLink, Loader2,
-  CheckCircle2, X, AlertTriangle, Wallet, Copy, Check
+  ArrowLeft, Upload, Zap, Flag, Music, Loader2,
+  CheckCircle2, X, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
-import {
-  buildNFTMetadata, uploadMetadataToIPFS, mintStemNFT, switchToBaseSepolia
-} from "@/lib/nftMinting";
+import { buildNFTMetadata, uploadMetadataToIPFS } from "@/lib/nftMinting";
 import { StemPlayer } from "@/components/StemPlayer";
 import { StemManageControls } from "@/components/StemManageControls";
 
@@ -104,11 +102,9 @@ function FlagModal({ stemId, onClose }: { stemId: number; onClose: () => void })
 function MintModal({ stem, metadata, artistName, onClose, onMinted }: {
   stem: any; metadata: any; artistName: string;
   onClose: () => void;
-  onMinted: (tokenId: string, txHash: string, contractAddress: string) => void;
+  onMinted: (metadataUri: string) => Promise<void>;
 }) {
   const [mintStep, setMintStep] = useState<"idle" | "uploading" | "minting" | "done">("idle");
-  const [result, setResult] = useState<any>(null);
-  const [copied, setCopied] = useState(false);
 
   const handleMint = async () => {
     setMintStep("uploading");
@@ -123,33 +119,17 @@ function MintModal({ stem, metadata, artistName, onClose, onMinted }: {
         ipfsUrl: stem.ipfsUrl,
       });
 
-      const tokenUri = await uploadMetadataToIPFS(nftMeta);
+      const metadataUri = await uploadMetadataToIPFS(nftMeta);
       setMintStep("minting");
 
-      const eth = (window as any).ethereum;
-      if (!eth) throw new Error("MetaMask not found");
-      const accounts = await eth.request({ method: "eth_requestAccounts" });
-
-      const mintResult = await mintStemNFT({
-        toAddress: accounts[0],
-        tokenUri,
-      });
-
-      setResult(mintResult);
+      // Hand the metadata URI to the page-level Solana queue. The relayer mints the cNFT
+      // (pays gas, no wallet popup). On success the modal is closed by the parent; on
+      // failure this throws and we drop back to idle below.
+      await onMinted(metadataUri);
       setMintStep("done");
-      onMinted(mintResult.tokenId, mintResult.txHash, mintResult.contractAddress);
-      toast.success("NFT minted successfully!");
     } catch (err: any) {
-      toast.error(err.message ?? "Minting failed");
+      toast.error(err?.message ?? "Failed to queue mint");
       setMintStep("idle");
-    }
-  };
-
-  const copyTx = () => {
-    if (result?.txHash) {
-      navigator.clipboard.writeText(result.txHash);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -189,17 +169,17 @@ function MintModal({ stem, metadata, artistName, onClose, onMinted }: {
             </div>
             <div className="bg-secondary/50 rounded-lg p-3">
               <p className="text-xs text-muted-foreground mb-1">Network</p>
-              <p className="text-sm text-foreground">Base Sepolia (Testnet)</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Free minting — no gas fees on testnet</p>
+              <p className="text-sm text-foreground">Solana</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Free — STEM's relayer pays the gas. No wallet popup.</p>
             </div>
             <p className="text-xs text-muted-foreground">
-              This will mint an ERC-721 NFT on Base Sepolia with your stem's IPFS CID embedded in the metadata, proving ownership.
+              This pins your stem's metadata to IPFS and queues it to be minted as a compressed NFT on Solana — a timestamped proof of ownership.
             </p>
             <Button
               onClick={handleMint}
               className="w-full gradient-primary text-primary-foreground font-display tracking-wider"
             >
-              <Wallet className="h-4 w-4 mr-2" /> MINT PROOF OF OWNERSHIP
+              <Zap className="h-4 w-4 mr-2" /> MINT PROOF OF OWNERSHIP
             </Button>
           </div>
         )}
@@ -208,36 +188,19 @@ function MintModal({ stem, metadata, artistName, onClose, onMinted }: {
           <div className="text-center py-6">
             <Loader2 className="h-10 w-10 text-primary mx-auto mb-4 animate-spin" />
             <p className="text-foreground font-display font-medium">
-              {mintStep === "uploading" ? "Uploading metadata to IPFS..." : "Minting NFT on Base Sepolia..."}
+              {mintStep === "uploading" ? "Pinning metadata to IPFS..." : "Queueing your mint..."}
             </p>
-            <p className="text-muted-foreground text-xs mt-2">Please confirm in MetaMask if prompted</p>
+            <p className="text-muted-foreground text-xs mt-2">This only takes a moment.</p>
           </div>
         )}
 
-        {mintStep === "done" && result && (
-          <div className="space-y-3">
-            <div className="text-center mb-4">
-              <CheckCircle2 className="h-10 w-10 text-accent mx-auto mb-2" />
-              <p className="text-foreground font-display font-medium">NFT Minted!</p>
-              <p className="text-muted-foreground text-xs">Token #{result.tokenId}</p>
-            </div>
-            <div className="bg-secondary/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground mb-1">Transaction Hash</p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-mono text-foreground/70 truncate flex-1">{result.txHash}</p>
-                <button onClick={copyTx} className="text-muted-foreground hover:text-foreground shrink-0">
-                  {copied ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-            </div>
-            <a
-              href={`https://sepolia.basescan.org/tx/${result.txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 text-xs text-accent hover:text-accent/80 transition-colors"
-            >
-              <ExternalLink className="h-3 w-3" /> View on BaseScan
-            </a>
+        {mintStep === "done" && (
+          <div className="text-center py-6">
+            <CheckCircle2 className="h-10 w-10 text-accent mx-auto mb-2" />
+            <p className="text-foreground font-display font-medium">Mint queued!</p>
+            <p className="text-muted-foreground text-xs mt-1">
+              The relayer will mint your stem on Solana shortly. Its status will update here in your library.
+            </p>
           </div>
         )}
       </motion.div>
@@ -362,22 +325,19 @@ export default function StemLibrary() {
 
   const handleQueueMint = async (metadataUri: string) => {
     if (!mintTarget?.stem?.id) return;
+    // NOTE (T10): wallet entry moves into the custodial flow; for now the address still comes
+    // from the profile. Throwing here lets MintModal surface the error and reset.
     if (!walletAddress) {
-      toast.error("Add your Solana wallet address in your profile first");
-      return;
+      throw new Error("Add your Solana wallet address in your profile first");
     }
-    try {
-      await queueMint.mutateAsync({
-        stemId: mintTarget.stem.id,
-        artistWalletAddress: walletAddress,
-        metadataUri,
-      });
-      toast.success("Mint queued! Your stem will be minted within 24 hours.");
-      refetch();
-      setMintTarget(null);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to queue mint");
-    }
+    await queueMint.mutateAsync({
+      stemId: mintTarget.stem.id,
+      artistWalletAddress: walletAddress,
+      metadataUri,
+    });
+    toast.success("Mint queued! Your stem will be minted shortly.");
+    refetch();
+    setMintTarget(null);
   };
 
   return (
