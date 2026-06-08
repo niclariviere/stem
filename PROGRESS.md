@@ -15,3 +15,8 @@
 Shipped: Removed all EVM/MetaMask/Base-Sepolia code from the client mint path; the rendered MintModal now does the honest Solana flow (build metadata → pin IPFS → `queueMint`), fixed the broken `onMinted` signature mismatch, and rewired EditProfile's wallet connect from MetaMask to Phantom. No EVM refs remain; tsc clean; 55/55 tests pass. (Logged-in browser click-test not run — no headless browser this session.)
 Commit: 34fb4ff
 Next: T2 — add `mintDeadline` (stems) + `mintOnExpiry` (users) schema fields (add only, no behavior).
+
+## T2 — Schema: mintDeadline + mintOnExpiry — 2026-06-08
+Shipped: Added `stems.mintDeadline` (nullable timestamp) + `users.mintOnExpiry` (boolean default false); pushed to local DB via drizzle-kit. Add-only — no behavior, no backfill. Verified columns present + all 11 existing stems grandfathered (null deadline); tsc clean. Activation against existing trio data parked (DECISIONS D3).
+Commit: 0e0c9bd
+Next: T3 — set `mintDeadline = now + 7d` on stem creation (server source of truth) + expose on read path.
