@@ -20,3 +20,8 @@ Next: T2 — add `mintDeadline` (stems) + `mintOnExpiry` (users) schema fields (
 Shipped: Added `stems.mintDeadline` (nullable timestamp) + `users.mintOnExpiry` (boolean default false); pushed to local DB via drizzle-kit. Add-only — no behavior, no backfill. Verified columns present + all 11 existing stems grandfathered (null deadline); tsc clean. Activation against existing trio data parked (DECISIONS D3).
 Commit: 0e0c9bd
 Next: T3 — set `mintDeadline = now + 7d` on stem creation (server source of truth) + expose on read path.
+
+## T3 — Set mintDeadline on stem creation — 2026-06-08
+Shipped: `createStem` now stamps `mintDeadline = now + 7d` (exported `MINT_WINDOW_DAYS`); read paths already `select()` all columns so it reaches the client. New uploads only; existing rows stay grandfathered. Added self-cleaning `scripts/smoke-mint-window.ts` (deadline ≈ createdAt+7d, 0.01min drift). tsc clean, 55/55 tests pass.
+Commit: b943527
+Next: T4 — read-time filter hiding expired-unminted stems from public/match surfaces (owner still sees own).

@@ -241,10 +241,26 @@ export async function getUserStems(userId: number) {
   }));
 }
 
+// A stem drops off public/match surfaces once its mint window lapses unminted.
+// "expired-unminted" = mintStatus 'none' AND a deadline that is set and now in the past.
+// Grandfathered (null deadline) and minted/pending/failed stems are unaffected. The owner
+// still sees their own expired stems via getUserStems (re-list by minting).
+// NOTE (T4): this is the agreed expired-only filter. Whether ALL in-window unminted stems
+// should also be private from public/match (design "workshop privacy" / minted-only) is a
+// trio-phase visibility call parked in DECISIONS (D13).
+function notExpiredUnminted() {
+  return sql`NOT (${stems.mintStatus} = 'none' AND ${stems.mintDeadline} IS NOT NULL AND ${stems.mintDeadline} < NOW())`;
+}
+
 export async function getAllPublicStems(limit = 100) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(stems).where(eq(stems.isFlagged, false)).orderBy(desc(stems.createdAt)).limit(limit);
+  return db
+    .select()
+    .from(stems)
+    .where(and(eq(stems.isFlagged, false), notExpiredUnminted()))
+    .orderBy(desc(stems.createdAt))
+    .limit(limit);
 }
 
 export async function updateStemNft(stemId: number, data: {
@@ -284,6 +300,19 @@ export async function getAllStemMetadata() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(stemMetadata);
+}
+
+// Match-engine input: same as getAllStemMetadata but excludes stems whose mint window
+// has lapsed unminted (see notExpiredUnminted). Joins stems to apply the filter.
+export async function getMatchableStemMetadata() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(stemMetadata)
+    .innerJoin(stems, eq(stemMetadata.stemId, stems.id))
+    .where(notExpiredUnminted());
+  return rows.map((r) => r.stemMetadata);
 }
 
 export async function updateStemMetadata(stemId: number, data: Partial<InsertStemMetadata>) {

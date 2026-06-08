@@ -76,6 +76,13 @@ The Pinata JWT is exposed via Vite client env — flagged as trio-phase-only in 
 - **Needs:** light steer; otherwise I proceed on the lexicon notes' weights (Mandatory: stem/track/song; Cover non-mintable; Sample/Remix caution) and you veto in review.
 - **Decision:** _pending (building on lexicon-notes defaults unless steered)_
 
+### D13 — Public/match visibility of in-window unminted stems (workshop privacy strength)
+**(Added 2026-06-08, during T4.)** T4 shipped the agreed **expired-only** filter: a stem drops off public/match once its 7-day window lapses *unminted*. But the mint-countdown design memory is stronger — it says stems are **private to the artist during the whole window** (public/match = *minted-only*; "never expose `mintStatus='none'` to other users"). The expired-only filter is correct under every reading, so it's safe to ship now; the open question is whether to go all the way to minted-only.
+- **Why it matters (but isn't urgent):** zero current blast radius — `getAllPublicStems` is unused in the client and the match engine is hidden from nav. So nothing is exposed either way today. Trivially reversible (read-time filter).
+- **Tension:** strict design = workshop privacy (minted-only). But trio-phase collaboration might *want* members to see each other's in-window stems before minting. That's the real product call.
+- **Needs:** for the eventual public catalog / re-enabled match engine — minted-only (strict workshop privacy), or show in-window unminted stems to other members?
+- **Decision:** _pending (shipped expired-only; forward-compatible with either answer)_
+
 ---
 
 ## Resolved

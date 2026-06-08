@@ -296,7 +296,7 @@ export const appRouter = router({
         const targetMeta = await db.getStemMetadata(input.stemId);
         if (!targetMeta) throw new TRPCError({ code: "NOT_FOUND", message: "Stem metadata not found" });
 
-        const allMeta = await db.getAllStemMetadata();
+        const allMeta = await db.getMatchableStemMetadata();
         const candidates = allMeta.filter(m => m.stemId !== input.stemId);
         const results = findCompatibleStems(targetMeta, candidates, input.minScore, input.limit);
 
@@ -321,7 +321,7 @@ export const appRouter = router({
         energyMax: z.number().optional(),
       }))
       .query(async ({ input }) => {
-        const allMeta = await db.getAllStemMetadata();
+        const allMeta = await db.getMatchableStemMetadata();
         return filterStems(allMeta, input);
       }),
 
