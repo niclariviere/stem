@@ -198,10 +198,16 @@ export async function markAuthChallengeUsed(id: number) {
 
 // ============ STEMS ============
 
+// The 7-day upload→mint window. The deadline is a server fact set at creation so the client
+// never has to compute it from createdAt. See [[project_stem_mint_countdown]] design.
+export const MINT_WINDOW_DAYS = 7;
+
 export async function createStem(data: InsertStem): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await db.insert(stems).values(data);
+  const mintDeadline =
+    data.mintDeadline ?? new Date(Date.now() + MINT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const [result] = await db.insert(stems).values({ ...data, mintDeadline });
   return result.insertId;
 }
 
