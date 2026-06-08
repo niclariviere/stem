@@ -30,3 +30,8 @@ Next: T4 — read-time filter hiding expired-unminted stems from public/match su
 Shipped: Read-time filter (`notExpiredUnminted()`) on `getAllPublicStems` + new `getMatchableStemMetadata` (matching now uses it). Expired-unminted gone from public/match, owner keeps theirs; grandfathered + minted/pending/failed unaffected. Smoke extended to 7 checks. Zero blast radius (public read unused, match hidden). Stronger "minted-only workshop privacy" call parked (DECISIONS D13). tsc clean, 55/55 tests.
 Commit: 95898f2
 Next: T5 — mint status UX (server mintDeadline → countdown + status badges + poll getMintStatus while pending).
+
+## T5 — Mint status UX (countdown + badges + polling) — 2026-06-08
+Shipped: StemCard reads countdown from server `mintDeadline` (null = no badge); status-driven badge (Minted / Minting… / Mint failed / Nd-left); polls `getMintStatus` every 5s while pending and refetches list on resolution; Mint button + note gated on status='none'. tsc clean, 55/55 tests. (Interactive poll/badge not browser-verified — no headless browser.)
+Commit: 0d9441c
+Next: T6 — Lexicon work-unit `type` attribute (stem/track/song; beat TBD) at upload + display. Couples to DECISIONS D12 (proceeding on lexicon-notes defaults).
