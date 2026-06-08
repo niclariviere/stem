@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
@@ -210,21 +210,36 @@ function MintModal({ stem, metadata, artistName, onClose, onMinted }: {
 
 // ── Stem Card ─────────────────────────────────────────────────────────────────
 
-function StemCard({ stem, onFlag, onMint }: {
+function StemCard({ stem, onFlag, onMint, onResolved }: {
   stem: any;
   onFlag: (id: number) => void;
   onMint: (stem: any) => void;
+  onResolved: () => void;
 }) {
   const { data: meta } = trpc.metadata.getById.useQuery({ stemId: stem.id });
 
-  // 7-day upload→mint window. Computed from createdAt — no stored expiry field.
   const MINT_WINDOW_DAYS = 7;
-  const daysLeft = stem.isMinted
-    ? null
-    : Math.max(
-        0,
-        Math.ceil(MINT_WINDOW_DAYS - (Date.now() - new Date(stem.createdAt).getTime()) / 86_400_000),
-      );
+
+  // Poll mint status while the relayer is working, so the badge updates without a reload.
+  const isPending = stem.mintStatus === "pending";
+  const { data: live } = trpc.stems.getMintStatus.useQuery(
+    { stemId: stem.id },
+    { enabled: isPending, refetchInterval: isPending ? 5000 : false },
+  );
+  const status: "none" | "pending" | "minted" | "failed" =
+    (live?.mintStatus as any) ?? stem.mintStatus ?? (stem.isMinted ? "minted" : "none");
+
+  // When a pending mint resolves (minted/failed), refresh the parent list.
+  useEffect(() => {
+    if (live && live.mintStatus !== "pending") onResolved();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live?.mintStatus]);
+
+  // Countdown from the server-stored deadline. null deadline = grandfathered, no countdown.
+  const daysLeft =
+    status === "none" && stem.mintDeadline
+      ? Math.max(0, Math.ceil((new Date(stem.mintDeadline).getTime() - Date.now()) / 86_400_000))
+      : null;
 
   return (
     <motion.div
@@ -246,9 +261,15 @@ function StemCard({ stem, onFlag, onMint }: {
             </p>
           </div>
         </div>
-        {stem.isMinted ? (
+        {status === "minted" ? (
           <span className="text-xs px-2 py-0.5 bg-accent/20 text-accent rounded-full shrink-0 ml-2">Minted</span>
-        ) : daysLeft !== null && (
+        ) : status === "pending" ? (
+          <span className="text-xs px-2 py-0.5 bg-primary/15 text-primary rounded-full shrink-0 ml-2 flex items-center gap-1">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Minting…
+          </span>
+        ) : status === "failed" ? (
+          <span className="text-xs px-2 py-0.5 bg-destructive/20 text-destructive rounded-full shrink-0 ml-2">Mint failed</span>
+        ) : daysLeft !== null ? (
           <span
             className={`text-xs px-2 py-0.5 rounded-full shrink-0 ml-2 ${
               daysLeft <= 1 ? "bg-destructive/20 text-destructive" : "bg-secondary text-muted-foreground"
@@ -257,7 +278,7 @@ function StemCard({ stem, onFlag, onMint }: {
           >
             {daysLeft === 0 ? "Expires today" : `${daysLeft}d left`}
           </span>
-        )}
+        ) : null}
       </div>
 
       <StemPlayer
@@ -278,7 +299,7 @@ function StemCard({ stem, onFlag, onMint }: {
       )}
 
       <div className="flex gap-2 mt-4">
-        {!stem.isMinted && (
+        {status === "none" && (
           <Button
             size="sm"
             onClick={() => onMint({ stem, meta })}
@@ -296,7 +317,7 @@ function StemCard({ stem, onFlag, onMint }: {
         </button>
       </div>
 
-      {!stem.isMinted && (
+      {status === "none" && (
         <p className="text-xs text-muted-foreground/50 mt-3 leading-relaxed">
           Stems are meant to be minted within {MINT_WINDOW_DAYS} days of upload. Auto-mint after the
           7-day period, and removal of unminted stems, are coming soon.
@@ -389,6 +410,7 @@ export default function StemLibrary() {
                 stem={stem}
                 onFlag={setFlagStemId}
                 onMint={({ stem: s, meta: m }) => setMintTarget({ stem: s, meta: m })}
+                onResolved={() => refetch()}
               />
             ))}
           </div>
