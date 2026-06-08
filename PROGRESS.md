@@ -25,3 +25,8 @@ Next: T3 — set `mintDeadline = now + 7d` on stem creation (server source of tr
 Shipped: `createStem` now stamps `mintDeadline = now + 7d` (exported `MINT_WINDOW_DAYS`); read paths already `select()` all columns so it reaches the client. New uploads only; existing rows stay grandfathered. Added self-cleaning `scripts/smoke-mint-window.ts` (deadline ≈ createdAt+7d, 0.01min drift). tsc clean, 55/55 tests pass.
 Commit: b943527
 Next: T4 — read-time filter hiding expired-unminted stems from public/match surfaces (owner still sees own).
+
+## T4 — Hide expired-unminted from public/match — 2026-06-08
+Shipped: Read-time filter (`notExpiredUnminted()`) on `getAllPublicStems` + new `getMatchableStemMetadata` (matching now uses it). Expired-unminted gone from public/match, owner keeps theirs; grandfathered + minted/pending/failed unaffected. Smoke extended to 7 checks. Zero blast radius (public read unused, match hidden). Stronger "minted-only workshop privacy" call parked (DECISIONS D13). tsc clean, 55/55 tests.
+Commit: 95898f2
+Next: T5 — mint status UX (server mintDeadline → countdown + status badges + poll getMintStatus while pending).
