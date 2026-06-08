@@ -28,6 +28,8 @@ export const users = mysqlTable("users", {
   spotifyUrl: varchar("spotifyUrl", { length: 500 }),
   websiteUrl: varchar("websiteUrl", { length: 500 }),
   walletAddress: varchar("walletAddress", { length: 64 }), // Solana base58 address (44 chars)
+  // Auto-mint a stem when its 7-day window expires (opt-in; default off — the explicit mint is the ritual).
+  mintOnExpiry: boolean("mintOnExpiry").default(false).notNull(),
   // Invitation system
   isVerified: boolean("isVerified").default(false).notNull(),
   invitedBy: int("invitedBy"),
@@ -78,6 +80,8 @@ export const stems = mysqlTable("stems", {
   solanaNetwork: varchar("solanaNetwork", { length: 20 }).default("devnet"),
   nftMetadataUri: text("nftMetadataUri"),
   isMinted: boolean("isMinted").default(false).notNull(),
+  // 7-day upload→mint window. Set on creation (T3); null = grandfathered / no countdown.
+  mintDeadline: timestamp("mintDeadline"),
   // Moderation
   isFlagged: boolean("isFlagged").default(false).notNull(),
   flagReason: text("flagReason"),
