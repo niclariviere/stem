@@ -27,8 +27,11 @@ import {
   mplBubblegum,
   fetchTreeConfig,
   parseLeafFromMintV1Transaction,
+  TokenProgramVersion,
+  TokenStandard,
 } from "@metaplex-foundation/mpl-bubblegum";
 import { fromWeb3JsKeypair } from "@metaplex-foundation/umi-web3js-adapters";
+import bs58 from "bs58";
 import { getRelayerKeypair, getSolanaNetwork } from "./solanaRelayer";
 
 export const STEM_ROYALTY_BPS = 500; // 5% on secondary sales — enforced by Metaplex
@@ -85,7 +88,7 @@ export async function createStemMerkleTree(): Promise<{
   });
 
   const result = await builder.sendAndConfirm(umi);
-  const txSig = Buffer.from(result.signature).toString("base64");
+  const txSig = bs58.encode(result.signature);
 
   return {
     treeAddress: merkleTree.publicKey.toString(),
@@ -143,13 +146,13 @@ export async function mintStemCNFT(params: StemMintParams): Promise<StemMintResu
       isMutable: false,
       primarySaleHappened: false,
       editionNonce: none(),
-      tokenStandard: none(),
+      tokenStandard: some(TokenStandard.NonFungible),
       uses: none(),
-      tokenProgramVersion: { __kind: "Original" } as any,
+      tokenProgramVersion: TokenProgramVersion.Original,
     },
   }).sendAndConfirm(umi);
 
-  const txSig = Buffer.from(signature).toString("base64");
+  const txSig = bs58.encode(signature);
 
   // Parse leaf index from transaction
   let leafIndex = 0;
