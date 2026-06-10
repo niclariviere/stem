@@ -35,3 +35,13 @@ Next: T5 — mint status UX (server mintDeadline → countdown + status badges +
 Shipped: StemCard reads countdown from server `mintDeadline` (null = no badge); status-driven badge (Minted / Minting… / Mint failed / Nd-left); polls `getMintStatus` every 5s while pending and refetches list on resolution; Mint button + note gated on status='none'. tsc clean, 55/55 tests. (Interactive poll/badge not browser-verified — no headless browser.)
 Commit: 0d9441c
 Next: T6 — Lexicon work-unit `type` attribute (stem/track/song; beat TBD) at upload + display. Couples to DECISIONS D12 (proceeding on lexicon-notes defaults).
+
+## Beta — 150MB cap + editable BPM/key — 2026-06-10
+Shipped: Raised stem upload cap 50MB→150MB (full lossless songs need it) with a clearer message. BPM/key now artist-correctable on upload + library (seeded by detection; ½×/2× octave buttons for half/double-time + 24-key dropdown), reusing the owner-guarded `metadata.save` upsert. Shared `client/src/lib/musicMeta.ts` carries a match-engine contract note (compare BPM mod-octave + key by Camelot adjacency so corrections never create false mismatches). tsc clean, 55/55 tests.
+Commit: 52f8aa5
+Next: wire the mint pipeline to actually mint (see below).
+
+## Mint pipeline — devnet end-to-end working — 2026-06-10
+Shipped: First real cNFT mint of an actual stem through the actual UI, on devnet. Built the missing queue processor (`server/lib/processMintQueue.ts`: pending → `mintStemCNFT` → minted/failed, 3 retries) + devnet ops scripts. Fixed 4 bugs in never-run code, found by smoke-testing the on-chain mint in isolation: (1) `tokenProgramVersion` object → serializer crash; (2) base64 tx sigs → dead explorer links; (3) metadata read wrong env vars → oversized inline data-URI → tx-too-large; (4) JWT scoped to file-pinning → `pinJSONToIPFS` 403, switched to `pinFileToIPFS`. Relayer funded on devnet, Merkle tree `5N77kenD…` created. tsc clean, 55/55 tests.
+Commit: 47e38eb
+Next: (a) run the queue processor as a background worker (currently manual `scripts/process-mints.ts`); (b) T10 custodial wallet to replace the throwaway recipient — random BIP39 key on Phantom path, encrypted-at-rest, tiered `custodyTier` default `self_custody_backup`; (c) fix the `verifyMerkleTree` false-negative; (d) original T6 lexicon `type` still pending.
