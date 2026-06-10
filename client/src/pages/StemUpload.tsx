@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { analyzeAudioFile } from "@/lib/audioAnalysis";
+import { BpmKeyFields } from "@/components/BpmKeyFields";
 import { toast } from "sonner";
 
 const GENRE_OPTIONS = [
@@ -82,8 +83,10 @@ export default function StemUpload() {
       toast.error("Please upload an audio file (MP3, WAV, FLAC, etc.)");
       return;
     }
-    if (f.size > 50 * 1024 * 1024) {
-      toast.error("File too large. Maximum 50MB.");
+    if (f.size > 150 * 1024 * 1024) {
+      toast.error(
+        "File too large (max 150MB). A track this size is unusual — if this wasn't a mistake on your end, get in touch and we'll help you get it uploaded.",
+      );
       return;
     }
     setFile(f);
@@ -312,10 +315,16 @@ export default function StemUpload() {
               <h3 className="text-xs font-display tracking-[0.2em] text-muted-foreground uppercase mb-4 flex items-center gap-2">
                 <Cpu className="h-3 w-3" /> Analysis Results
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <BpmKeyFields
+                bpm={Math.round(analysis.bpm)}
+                musicalKey={analysis.key}
+                onChange={({ bpm, key }) => setAnalysis({ ...analysis, bpm, key })}
+              />
+              <p className="text-xs text-muted-foreground/60 mt-2 leading-relaxed">
+                Auto-detected — correct if needed. ½× / 2× fix half- or double-time readings.
+              </p>
+              <div className="grid grid-cols-2 gap-3 mt-3">
                 {[
-                  { label: "BPM", value: Math.round(analysis.bpm) },
-                  { label: "Key", value: analysis.key },
                   { label: "Energy", value: `${(analysis.energyLevel * 100).toFixed(0)}%` },
                   { label: "Type", value: analysis.instrumentType },
                 ].map(({ label, value }) => (

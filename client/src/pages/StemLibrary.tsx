@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, Upload, Zap, Flag, Music, Loader2,
-  CheckCircle2, X, AlertTriangle
+  CheckCircle2, X, AlertTriangle, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BpmKeyFields } from "@/components/BpmKeyFields";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
@@ -216,7 +217,25 @@ function StemCard({ stem, onFlag, onMint, onResolved }: {
   onMint: (stem: any) => void;
   onResolved: () => void;
 }) {
-  const { data: meta } = trpc.metadata.getById.useQuery({ stemId: stem.id });
+  const { data: meta, refetch: refetchMeta } = trpc.metadata.getById.useQuery({ stemId: stem.id });
+  const saveMeta = trpc.metadata.save.useMutation();
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [draft, setDraft] = useState<{ bpm: number; key: string }>({ bpm: 120, key: "C major" });
+
+  const startEditMeta = () => {
+    setDraft({ bpm: Math.round(meta?.bpm ?? 120), key: meta?.key ?? "C major" });
+    setEditingMeta(true);
+  };
+  const saveEditMeta = async () => {
+    try {
+      await saveMeta.mutateAsync({ stemId: stem.id, bpm: draft.bpm, key: draft.key });
+      await refetchMeta();
+      setEditingMeta(false);
+      toast.success("BPM & key updated");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to save changes");
+    }
+  };
 
   const MINT_WINDOW_DAYS = 7;
 
@@ -286,11 +305,44 @@ function StemCard({ stem, onFlag, onMint, onResolved }: {
         waveform={meta?.waveformData as number[] | undefined}
       />
 
-      {meta && (
-        <div className="flex gap-3 mt-3">
+      {meta && !editingMeta && (
+        <div className="flex items-center gap-3 mt-3">
           {meta.bpm && <span className="text-xs text-muted-foreground">{Math.round(meta.bpm)} BPM</span>}
           {meta.key && <span className="text-xs text-muted-foreground">{meta.key}</span>}
           {meta.instrumentType && <span className="text-xs text-muted-foreground capitalize">{meta.instrumentType}</span>}
+          <button
+            onClick={startEditMeta}
+            className="ml-auto text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+            title="Correct BPM or key"
+          >
+            <Pencil className="h-3 w-3" /> Edit
+          </button>
+        </div>
+      )}
+
+      {meta && editingMeta && (
+        <div className="mt-3 surface-glass rounded-lg p-3 space-y-3">
+          <BpmKeyFields
+            bpm={draft.bpm}
+            musicalKey={draft.key}
+            onChange={setDraft}
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setEditingMeta(false)}
+              className="h-7 px-3 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+            <Button
+              size="sm"
+              onClick={saveEditMeta}
+              disabled={saveMeta.isPending}
+              className="h-7 text-xs gradient-primary text-primary-foreground"
+            >
+              {saveMeta.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+            </Button>
+          </div>
         </div>
       )}
 
