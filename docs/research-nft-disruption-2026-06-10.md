@@ -58,6 +58,32 @@ The research does not resolve this. It is the same question we circled all night
 ## Caveats on this research
 Fast-moving space (claims dated 2022-2026; US SEC posture softened 2025-26). Securities-law findings rest on primary/tier-1 legal sources (high confidence). Platform-failure facts corroborated by tier-1 outlets. The superfan/"incumbent-cannot-follow" finding leans on secondary trade analysis, had a dissent, and a related claim was refuted — directional, not proven. Self-reported platform metrics (Sound's $5.5M, Cragun's $120K) are marketing, cherry-picked successes.
 
+---
+
+# Part 2 — Sound.xyz case study + under-the-radar scan (2026-06-10b)
+> 2nd deep-research run (106 agents, 23 sources, 25 claims verified, 22 confirmed / 3 refuted).
+
+## Sound.xyz: sound model, friction-laden execution
+**The model was genuinely artist-favorable — emulate it:** artists set their own prices, sold music NFTs while the track streamed free, kept **100% of earnings**, retained **100% of master + publishing rights**, **owned their contracts**, got instant payments + real-time collaborator splits. Smart monetization detail: Sound moved its fee onto the **collector** (per-transaction), so the artist keeps 100% of primary *and* secondary. This is NOT what failed.
+
+**Traction = fundraising marketing, not proof:** the famous $5.5M / ~500 artists / ~1,600 songs was a **12-month closed beta** figure from the July-2023 $20M-raise press; Reo Cragun's "$120K / 500 collectors" is a flagship case (sources even disagree: $120K vs $300K). Lesson: "1,000 true fans" produces a *handful* of flagship winners while most artists see thin demand. And Sound raised ~$25M from a16z/Snoop/etc. and **still wound down — capital did not fix demand thinness.**
+
+**Why it really declined:** company framed it as a "focus" decision ("all-in on Vault.fm"), NOT model failure — but by mid-2025 NFT activity had thinned to ~20 ETH/mo sales, ~94 new collectors, "steady devaluation" (medium confidence). **The pivot itself is the verdict:** the team that built a *leading* music-NFT platform abandoned wallets/NFTs for a wallet-less relationship tool. The economics were sound; the **wallet/NFT/speculation wrapper was the friction that buried the relationship** — and they only embraced the relationship at the end.
+
+**Vault.fm (the pivot) — THE signal:** a deliberately **wallet-less fan-CRM**. Core problem: *"I dropped a song. I have no idea who listened — and I can't reach them again."* Artists upload songs/videos/images; fans unlock via **email/phone (no wallet, no NFT)**; artists see listener analytics + contact fans by text/email; ~$5/mo USD, "nowhere to connect a wallet," artists own the fan data. James Blake (first artist): "not Web3/crypto-related." **The most credible team in this space looked at the data and walked away from NFTs entirely, toward a pure relationship CRM.**
+
+## Under-the-radar, non-speculative players
+- **EVEN (even.biz) — the closest LIVING model to STEM, and it's scaling.** Direct-to-fan storefront (music/merch/tickets/experiences, pre-streaming-release), ~80/20 split, **daily payouts** in the fan's currency, **artists own fan data**, ~**$17–20 avg per release** (real superfan willingness-to-pay benchmark). Crucially: EVEN's 2024 origin was an NFT-album platform with **custodial Magic wallets** — the token has since been **abstracted to invisibility**. ~10,000 artists; Too Lost's 400,000 artists/labels gained access; in-app sales count toward Billboard. **This is STEM's exact "custodial, hide the crypto, direct-to-fan" approach — already working at scale.**
+- **Subvert** — a real Colorado **cooperative** (one-member-one-vote), **0% platform fees** (funded by optional checkout tips + $100 lifetime membership + zine sales), physical membership goods, open financials, **no token/NFT**, SAFE-funded (~$650K), ~22K members (public May 2026). Proves ownership/community value with **zero speculation** — but calls itself "experimental" and 0%-fee sustainability is unproven. Lesson: STEM needs a **durable revenue model**, not tips.
+- *(Scan gap: Catalog, decent.xyz, Coop Records, anotherblock, bonfire, fans.xyz did not surface verified claims — landscape only partially covered.)*
+
+## THE central question this run sharpens
+Among the survivors, three verdicts on crypto: **Sound→Vault DROPPED it. EVEN HID it. Subvert NEVER had it.** All three converge on *relationship + direct commerce + artist-owns-data*. So:
+
+> **What does STEM's VISIBLE on-chain provenance add that EVEN's hidden-crypto and Subvert's no-crypto do not?**
+
+EVEN uses crypto as **invisible plumbing** (payment rails). STEM's only defensible difference is to make ownership/permanence the **visible point** — the un-erasable record, the artist's permanent sovereign catalog (the Ulli value) — not hidden rails. **If provenance is just invisible plumbing, EVEN already wins. STEM's bet must be that *visible, felt, permanent ownership* is worth something to artists/fans that EVEN abstracted away.** That is the thing to validate with founding members — the same un-erasable-floor thesis, now measured against living competitors.
+
 ## Key sources
 - Sound.xyz wind-down (primary): https://sound.mirror.xyz/W5F4DasupahnF_AyT5TwXSzKWJcOqHLuxf9nI0piPOE
 - Royal.io (primary + Wikipedia): https://en.wikipedia.org/wiki/Royal.io
