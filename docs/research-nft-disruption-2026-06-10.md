@@ -16,6 +16,13 @@ The flagship platforms built on song-NFTs and royalty-NFTs did **not** disrupt i
 - **Economics:** Nas "Ultra Black" top tier ($4,999 for 2.14% of royalties) needed **34.3M streams to break even**; the song had ~8M. Fans could never recoup. MIDiA: these were "technology looking for a problem."
 - **Securities law (Howey) is the decisive constraint:** fractionalizing an NFT ties each shard's value to all owners (horizontal commonality) → security. SEC's **Stoner Cats** settlement ($1M, Sept 2023) treated even a **2.5% creator royalty + resale-profit marketing** as securities evidence. Fractional-NFT subpoenas went out March 2022.
 
+## 2b. Audius — the decentralized-streaming + token-rewards experiment (added post-run, current data June 2026)
+*(The deep-research run named Audius but surfaced no verified findings — this is a follow-up WebSearch.)*
+Audius is a **different model** from the NFT platforms above: decentralized *streaming* (a Spotify-shaped competitor) with an $AUDIO token that rewards plays. It is the closest real-world test of the "decentralized player = Spotify killer + reward plays with a token" idea — and the most instructive cautionary case:
+- **~500k monthly active users, down from ~6M at the Aug 2021 peak** (~92% collapse). Rebranded "Open Audio Protocol" Jan 2026.
+- **$AUDIO ~$0.017, down 99.7% from its $4.95 ATH** (~$25M mkt cap). One source headline: *"Audius Pays Artists More Per Stream and It Still Fails."*
+- **Lessons (all reinforce STEM's conclusions):** (1) Fighting Spotify on the streaming/catalog field fails even with 6M users — no catalog people actually want, so it got stuck as a DJ/remix/electronic niche; the "decentralized player = Spotify killer" thesis died in Audius's 5-year test. (2) **Token-rewards-for-plays is the value-collapse trap** — pays more per stream than Spotify yet fails because the reward token fell 99.7% (the "magic-money/play-to-earn" autopsy). (3) The token *acquired* users (6M at hype peak) but couldn't *retain* them (→500k once it died) — speculation acquires, utility retains. (4) Nuance: not dead — the *stream model* works, the *token* is battered; the split (utility survives, magic-money collapses) is the lesson. **For STEM: cautionary mirror — no play-to-earn token, don't out-Spotify Spotify.**
+
 ## 3. STEM's design is VINDICATED (HIGH confidence)
 - **Genuinely-unique 1/1 mints, sold without profit-promises, conveying no royalty/fractional rights, are the structurally safe path** — exempt under EU MiCA (which regulates *fractional* NFTs), far safer under US Howey.
 - This directly validates STEM's **single-rights-holder-first, no-token, no-fractional, provenance-attributed, anti-"magic-money"** posture. **We dodged the landmine that blew up the field.**
