@@ -102,6 +102,31 @@ EVEN uses crypto as **invisible plumbing** (payment rails). STEM's only defensib
 ## The sharp synthesis for STEM
 Distribution wired to provenance isn't just marketing differentiation — **STEM's provenance + accountable-identity + custodial-account model is its FRAUD DEFENSE.** Anonymous free distribution = fraud magnet + distributor liability + termination risk. **Provenance-gated, verified-identity distribution = structurally low-fraud** — the exact thing that makes distribution *safe to operate* where it's a landmine for commodity free-distributors. So: if STEM offers distribution, **gate it behind verified provenance/identity — never an anonymous free-for-all.** The differentiator (provenance) is simultaneously the differentiator, the fan-relationship hook, AND the operational fraud control. That triple-duty is what turns distribution from commodity-bloodbath into a defensible STEM feature.
 
+---
+
+# Part 4 — Migration kata CONFIRMED (2026-06-12)
+> 4th run, 21 verified claims (primary: Spotify, Revelator, TuneCore, Apple). Hand-synthesized — workflow synth step hit a usage limit.
+
+**THE MECHANISM (confirmed):** stats live on the **ISRC** (track) + **UPC** (release), NOT the distributor. Spotify's **"track-linking"** matches a new delivery to the old via audio fingerprint + artist + track name + ISRC; **linked tracks SHARE the play count** → streams, playlists, saves all carry over. Identical codes + identical masters → linked. Changed codes / new audio → treated as a new release → stats reset + duplicate.
+
+**THE KATA — the ORDER is everything:**
+1. Get the originals from the old distributor: **ISRC + UPC + the master audio + a DELIVERY-HISTORY EXPORT** (Revelator requires this to avoid the duplicate/conflict block).
+2. **REDELIVER the new version FIRST** via the new distributor, reusing identical ISRC/UPC/metadata/audio (Spotify wants it ≥5 business days before live date).
+3. **WAIT** for DSPs to match/link; **VERIFY** stats carried (a brief "1 more release" duplicate overlap is normal/fine).
+4. **ONLY THEN take down the old release. NEVER take down first.**
+
+**WHY NIC'S 8 MONTHS HAPPENED (textbook failure):** takedown-FIRST (DistroKid removed the old release) → re-upload via new distributors with no old version to link to + no delivery-history coordination + the old delivery still ghosting in the content-match system → duplicate/copyright block + lost stats. The correct order — **new-first-then-takedown** — is the exact thing nobody told him. Compounded by DistroKid being Spotify-owned + radio-silent.
+
+**PARTNER:** **Revelator CONFIRMED** does clean migration (redelivers reusing identifiers, requires delivery-history export, instructs do-not-modify ISRC/UPC, their team redelivers to DSPs). Strong partner candidate for STEM.
+
+**HONEST CAVEATS (disclose them — transparency IS the differentiator):**
+- A few DSPs DON'T preserve counts even done right: **iHeartRadio, iMusica, KKBOX, Nuuday, YouTube Music.**
+- The old distributor's INTERNAL analytics-dashboard history can't transfer — but the **public streams/playlists/saves remain on the DSP** (via Spotify for Artists) as long as ISRC/UPC reused.
+- Requires **identical masters** (same audio file) — new fingerprint = new recording group = separate count.
+- Good news (pessimism refuted): **Apple DOES preserve** with proper handling; store links don't necessarily break.
+
+**STEM BUILD:** codify the kata into white-glove onboarding — extract originals + delivery history from the incumbent (the part incumbents stonewall = where STEM earns trust), redeliver-first via a Revelator-class partner, verify, then takedown. STEM drives it; the artist never makes the takedown-first mistake that cost Nic 8 months.
+
 ## Key sources
 - Sound.xyz wind-down (primary): https://sound.mirror.xyz/W5F4DasupahnF_AyT5TwXSzKWJcOqHLuxf9nI0piPOE
 - Royal.io (primary + Wikipedia): https://en.wikipedia.org/wiki/Royal.io
