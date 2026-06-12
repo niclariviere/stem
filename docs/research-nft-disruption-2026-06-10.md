@@ -84,6 +84,24 @@ Among the survivors, three verdicts on crypto: **Sound→Vault DROPPED it. EVEN 
 
 EVEN uses crypto as **invisible plumbing** (payment rails). STEM's only defensible difference is to make ownership/permanence the **visible point** — the un-erasable record, the artist's permanent sovereign catalog (the Ulli value) — not hidden rails. **If provenance is just invisible plumbing, EVEN already wins. STEM's bet must be that *visible, felt, permanent ownership* is worth something to artists/fans that EVEN abstracted away.** That is the thing to validate with founding members — the same un-erasable-floor thesis, now measured against living competitors.
 
+---
+
+# Part 3 — Per-chain music data + distribution (2026-06-11)
+> 3rd run (111 agents, 28 sources, 25/25 claims confirmed). Auto-synthesis collapsed; this is hand-synthesized from the verified claims.
+
+## Per-chain music launches: the clean data doesn't exist
+**Confirmed: there is NO clean per-chain music-project-launch dataset** (a16z State of Crypto 2025 has no music-specific per-chain breakdown; no source provides counts). So "Polygon is most active" can't be cleanly confirmed *or* refuted — dashboards are proxies (mostly raw mint counts). What IS confirmed: **Solana state compression = cNFTs at ~$110 to mint 100 MILLION (marginal ~$0.0001 each)** — a mass-minting edge EVM L2s don't match even post-Dencun. Structural read stands: EVM wins dev-pool/tooling/launch-count, Solana wins mint-cost-at-scale (STEM's need). Flag: EVM creator economy is morphing *past* NFTs into "creator coins" (Zora) — watch, but it's speculation-flavored.
+
+## Distribution: feasible via white-label — but free distribution is a FRAUD-LIABILITY landmine
+**White-label distribution infra is real and concrete** (you don't deal with DSPs directly): **Revelator** (fully white-label; bundles distribution + rights mgmt + payments), **SonoSuite** (white-label, owned by Believe; automated royalty accounting + payments), **Audicient** (white-label; handles full DSP delivery for the client). Delivery uses the **DDEX** standard (ERN for releases, AR for anomaly/fraud reporting). Free-distributor economics = the A&R funnel: **Amuse** runs a "next-gen record label" — free distro → data → ML-sized royalty advances ("Fast Forward") → sign the winners.
+
+**THE CRITICAL FINDING — streaming-fraud liability falls on the DISTRIBUTOR, and free distribution is the fraud vector:**
+- Spotify (since April 2024) charges a **€10/month penalty per track** flagged for artificial streaming, **levied on the distributor/label** (not just the artist). Apple Music **terminates** for fraud. Distributors are **financially liable for / share in fraudulent-stream revenue.** Anti-fraud crackdowns cut flagged fraud ~30%.
+- **Fraud is driven by the LOW BARRIER of free distribution** — anonymous free upload is exactly what bot-farms exploit. So if STEM offers *free, open* distribution, STEM becomes distributor-of-record and inherits the penalties **+ the existential risk that one fraud wave gets STEM's entire distribution channel terminated by a DSP — killing it for every legit artist.**
+
+## The sharp synthesis for STEM
+Distribution wired to provenance isn't just marketing differentiation — **STEM's provenance + accountable-identity + custodial-account model is its FRAUD DEFENSE.** Anonymous free distribution = fraud magnet + distributor liability + termination risk. **Provenance-gated, verified-identity distribution = structurally low-fraud** — the exact thing that makes distribution *safe to operate* where it's a landmine for commodity free-distributors. So: if STEM offers distribution, **gate it behind verified provenance/identity — never an anonymous free-for-all.** The differentiator (provenance) is simultaneously the differentiator, the fan-relationship hook, AND the operational fraud control. That triple-duty is what turns distribution from commodity-bloodbath into a defensible STEM feature.
+
 ## Key sources
 - Sound.xyz wind-down (primary): https://sound.mirror.xyz/W5F4DasupahnF_AyT5TwXSzKWJcOqHLuxf9nI0piPOE
 - Royal.io (primary + Wikipedia): https://en.wikipedia.org/wiki/Royal.io
