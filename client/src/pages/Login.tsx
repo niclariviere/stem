@@ -7,6 +7,7 @@ import { Loader2, Shield, Mail, Wallet, ArrowLeft, ExternalLink } from "lucide-r
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { requestMagicLink, signInWithSolana } from "@/lib/auth";
+import { WemakeLogo } from "@/components/WemakeLogo";
 
 type Step = "token" | "choose" | "email-sent";
 
@@ -95,8 +96,8 @@ export default function Login() {
   }
 
   const header = (label: string) => (
-    <div className="text-center mb-10">
-      <h1 className="text-4xl font-display font-bold text-foreground text-glow mb-2">STEM</h1>
+    <div className="flex flex-col items-center mb-10">
+      <WemakeLogo className="mb-3" />
       <p className="text-muted-foreground text-sm tracking-widest uppercase">{label}</p>
     </div>
   );

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -44,6 +44,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
+  --font-brand: 'Fraunces', Georgia, serif;
 }
 
 :root {
@@ -183,6 +184,9 @@
   .font-body {
     font-family: var(--font-body);
   }
+  .font-brand {
+    font-family: var(--font-brand);
+  }
 }
 
 /* Custom scrollbar */
@@ -200,4 +204,12 @@
   100% { transform: translateX(100%); }
 }
 .animate-scan-line { animation: scan-line 2s ease-in-out infinite; }
+
+/* Recording dot: 3 fast blinks on load, then hold steady ("on the record") */
+@keyframes rec-blink {
+  0% { opacity: 1; } 6% { opacity: 0.08; } 12% { opacity: 1; }
+  18% { opacity: 0.08; } 24% { opacity: 1; } 30% { opacity: 0.08; }
+  36% { opacity: 1; } 100% { opacity: 1; }
+}
+.animate-rec-blink { animation: rec-blink 1.7s ease-out 1 both; }
 .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }

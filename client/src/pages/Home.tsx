@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { WemakeLogo } from "@/components/WemakeLogo";
 
 const WAVEFORM_CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663277635327/CMCGNeGMcySGyYELtaJwyd/waveform-hero_ba79766b.jpg";
 
@@ -53,6 +54,7 @@ export default function Home() {
 
       {/* Content */}
       <div className="relative z-10 text-center px-6 max-w-5xl">
+        <WemakeLogo className="justify-center mb-10" />
         <motion.div
           className="mb-6 inline-flex items-center gap-3 px-4 py-2 rounded-full surface-glass"
           initial={{ opacity: 0, y: -20 }}
