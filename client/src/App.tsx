@@ -2,6 +2,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
+import { ComponentType } from "react";
+import DashboardLayout from "./components/DashboardLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -17,21 +19,28 @@ import Newsfeed from "./pages/Newsfeed";
 import BugReport from "./pages/BugReport";
 import Users from "./pages/Users";
 
+// Internal (logged-in) pages render inside the dashboard nav; public pages don't.
+const withDash = (Page: ComponentType) => () => (
+  <DashboardLayout>
+    <Page />
+  </DashboardLayout>
+);
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/edit" component={EditProfile} />
-      <Route path="/match" component={MatchEngine} />
-      <Route path="/library" component={StemLibrary} />
-      <Route path="/upload" component={StemUpload} />
-      <Route path="/wallet-setup" component={WalletSetup} />
-      <Route path="/songs" component={Songs} />
-      <Route path="/feed" component={Newsfeed} />
-      <Route path="/report" component={BugReport} />
-      <Route path="/users" component={Users} />
+      <Route path="/profile" component={withDash(Profile)} />
+      <Route path="/edit" component={withDash(EditProfile)} />
+      <Route path="/match" component={withDash(MatchEngine)} />
+      <Route path="/library" component={withDash(StemLibrary)} />
+      <Route path="/upload" component={withDash(StemUpload)} />
+      <Route path="/wallet-setup" component={withDash(WalletSetup)} />
+      <Route path="/songs" component={withDash(Songs)} />
+      <Route path="/feed" component={withDash(Newsfeed)} />
+      <Route path="/report" component={withDash(BugReport)} />
+      <Route path="/users" component={withDash(Users)} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
